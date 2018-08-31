@@ -1,11 +1,11 @@
 
 
-build=10
+build=12
 
 image_from="debian:9.5-slim"
 
 tag_ver_major=2
 tag_ver_minor=2.6
-tag_ver_full=2.6.2
+tag_ver_full=2.6.3
 tag_ver_latest=yes
 

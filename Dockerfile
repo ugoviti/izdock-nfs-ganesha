@@ -6,7 +6,7 @@ MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 ENV APP_NAME    "nfs-ganesha"
 
 ARG NFS_GANESHA_VERSION_MIN="2.6"
-ARG NFS_GANESHA_VERSION="2.6.2"
+ARG NFS_GANESHA_VERSION="2.6.3"
 ARG TINI_VERSION="0.18.0"
 
 # NFS daemon configuration
@@ -127,4 +127,4 @@ ADD Dockerfile filesystem /
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
 
-ENV APP_VER "2.6.2-10"
+ENV APP_VER "2.6.3-12"

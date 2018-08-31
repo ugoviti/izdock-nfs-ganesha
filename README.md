@@ -1,8 +1,8 @@
 # Description
-Nfs-ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
+NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
--	`2.6.2-BUILD`, `2.6.2`, `2.6`, `2`, `latest`
+-	`2.6.3-BUILD`, `2.6.3`, `2.6`, `2`, `latest`
 
 Where **BUILD** is the build number (look into project [Tags](tags/) page to discover the latest BUILD NUMBER)
 
