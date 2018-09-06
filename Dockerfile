@@ -118,7 +118,7 @@ RUN set -xe \
 VOLUME ["${EXPORT_PATH}"]
 
 # APP ports
-EXPOSE 111 111/udp 662 2049 38465-38467
+EXPOSE 111 111/udp 662 2049 20048 38465-38467
 
 # add files to container
 ADD Dockerfile filesystem /
@@ -127,4 +127,4 @@ ADD Dockerfile filesystem /
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
 
-ENV APP_VER "2.6.3-12"
+ENV APP_VER "2.6.3-15"

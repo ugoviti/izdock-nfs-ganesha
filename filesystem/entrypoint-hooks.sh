@@ -149,10 +149,20 @@ LOG {
 }
 
 NFSV4 {
-    Graceless = ${GRACELESS};
+    # test 20180831
+    Grace_Period = 90;
+    #Graceless = ${GRACELESS};
     Allow_Numeric_Owners = true;
     Only_Numeric_Owners = true;
 }
+
+# test 20180831
+NFS_Core_Param
+{
+    MNT_Port = 20048;
+    fsid_device = true;
+}
+
 
 EXPORT {
     # Export Id (mandatory, each EXPORT must have a unique Export_Id)
