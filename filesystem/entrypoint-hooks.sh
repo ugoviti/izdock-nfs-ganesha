@@ -5,25 +5,25 @@ set -e
 hooks_always() {
 
 # environment variables
-: ${EXPORT_PATH:="/data"}
-: ${PSEUDO_PATH:="/"}
-: ${EXPORT_ID:=6969}
+: ${EXPORT_PATH:="/exports"}
+: ${PSEUDO_PATH:="/exports"}
+: ${EXPORT_ID:=1}
 : ${PROTOCOLS:=4}
 : ${TRANSPORTS:="UDP, TCP"}
 : ${SEC_TYPE:="sys"}
 : ${SQUASH_MODE:="No_Root_Squash"}
-: ${GRACELESS:=true}
+: ${GRACELESS:=false}
+: ${GRACE_PERIOD:=90}
 : ${ACCESS_TYPE:="RW"}
 #: ${CLIENT_LIST:="*"}
 : ${CLIENT_LIST:="10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"}
-: ${DISABLE_ACL:=true}
+: ${DISABLE_ACL:=false}
 : ${ANON_USER:="nobody"}
 : ${ANON_GROUP:="nogroup"}
 : ${GANESHA_CONFIG:="/etc/ganesha/ganesha.conf"}
 : ${GANESHA_LOGFILE:="/dev/stdout"}
 : ${LOG_LEVEL:="INFO"}
-: ${LOG_COMPONENT:="ALL"}
-: ${LOG_COMPONENT_LEVEL:="$LOG_LEVEL"}
+: ${LOG_COMPONENT:="ALL=INFO;"}
 
 # nfs config requirements
 : ${IDMAP_DOMAIN:="$(hostname -d)"}
@@ -129,7 +129,7 @@ LOG {
       STATE = FATAL;
       FSAL_UP = FATAL;
       DBUS = FATAL;
-      ${LOG_COMPONENT} = ${LOG_COMPONENT_LEVEL};
+      ${LOG_COMPONENT}
     }
 
     Format {
@@ -149,9 +149,8 @@ LOG {
 }
 
 NFSV4 {
-    # test 20180831
-    Grace_Period = 90;
-    #Graceless = ${GRACELESS};
+    Graceless = ${GRACELESS};
+    Grace_Period = ${GRACE_PERIOD};
     Allow_Numeric_Owners = true;
     Only_Numeric_Owners = true;
 }
@@ -171,11 +170,11 @@ EXPORT {
     # Exported path (mandatory)
     Path = "${EXPORT_PATH}";
 
-    # Pseudo Path (for NFS v4)
+    # Pseudo Path (required for NFS v4)
     Pseudo = "${PSEUDO_PATH}";
 
     # Access control options
-    Access_type = ${ACCESS_TYPE};
+    Access_type = NONE;
     Squash = ${SQUASH_MODE};
 
     # NFS protocol options
@@ -194,7 +193,7 @@ EXPORT {
 
     CLIENT {
         Clients = ${CLIENT_LIST};
-        Access_Type = RW;
+        Access_Type = ${ACCESS_TYPE};
     }
 
     # Exporting FSAL

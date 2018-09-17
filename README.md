@@ -2,6 +2,7 @@
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
+-	`2.7.0-BUILD`, `2.7.0`, `2.7`, `2`, `latest`
 -	`2.6.3-BUILD`, `2.6.3`, `2.6`, `2`, `latest`
 
 Where **BUILD** is the build number (look into project [Tags](tags/) page to discover the latest BUILD NUMBER)
@@ -26,25 +27,25 @@ This image only contains nfs-ganesha from [official download repository](https:/
 # Environment variables
 You can change the default behaviour using the following variables (with default values):
 
-: ${EXPORT_PATH:="/data"}
-: ${PSEUDO_PATH:="/"}
-: ${EXPORT_ID:=6969}
+: ${EXPORT_PATH:="/exports"}
+: ${PSEUDO_PATH:="/exports"}
+: ${EXPORT_ID:=1}
 : ${PROTOCOLS:=4}
 : ${TRANSPORTS:="UDP, TCP"}
 : ${SEC_TYPE:="sys"}
 : ${SQUASH_MODE:="No_Root_Squash"}
-: ${GRACELESS:=true}
+: ${GRACELESS:=false}
+: ${GRACE_PERIOD:=90}
 : ${ACCESS_TYPE:="RW"}
+#: ${CLIENT_LIST:="*"}
 : ${CLIENT_LIST:="10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"}
-: ${DISABLE_ACL:=true}
+: ${DISABLE_ACL:=false}
 : ${ANON_USER:="nobody"}
 : ${ANON_GROUP:="nogroup"}
 : ${GANESHA_CONFIG:="/etc/ganesha/ganesha.conf"}
 : ${GANESHA_LOGFILE:="/dev/stdout"}
 : ${LOG_LEVEL:="INFO"}
-: ${LOG_COMPONENT:="ALL"}
-: ${LOG_COMPONENT_LEVEL:="$LOG_LEVEL"}
-
+: ${LOG_COMPONENT:="ALL=INFO;"}
 
 ### Create a `Dockerfile` in your project
 

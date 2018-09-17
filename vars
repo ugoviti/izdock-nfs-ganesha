@@ -1,11 +1,9 @@
+build=33
 
+image_from="debian:stretch-slim"
 
-build=15
-
-image_from="debian:9.5-slim"
-
-tag_ver_major=2
-tag_ver_minor=2.6
-tag_ver_full=2.6.3
 tag_latest=yes
 
+tag_ver_major=2
+tag_ver_minor=7
+tag_ver_patch=0
