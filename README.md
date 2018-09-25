@@ -1,3 +1,10 @@
+**WARNING!!! WARNING!!! WARNING!!!**
+NFS-GANESHA is NOT a production ready software! (at least 2018-09-21) 
+It suffer from many and many bugs and stability issues. Never use it in production environment!
+Tested 2.3.x, 2.5.x, 2.6.x and 2.7.x relases, and all have many bugs, Segmentation Faults, lags, stuck problems, (NFS 4.0, 4.1 and 4.2), etc.. 
+Use nfs-kernel instead if you don't want loose your time.
+**WARNING!!! WARNING!!! WARNING!!!**
+
 # Description
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
@@ -37,7 +44,6 @@ You can change the default behaviour using the following variables (with default
 : ${GRACELESS:=false}
 : ${GRACE_PERIOD:=90}
 : ${ACCESS_TYPE:="RW"}
-#: ${CLIENT_LIST:="*"}
 : ${CLIENT_LIST:="10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"}
 : ${DISABLE_ACL:=false}
 : ${ANON_USER:="nobody"}

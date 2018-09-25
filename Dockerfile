@@ -12,12 +12,15 @@ ARG tag_ver_patch=0
 ARG tag_ver=${tag_ver_major}.${tag_ver_minor}.${tag_ver_patch}
 
 # nfs ganesha version vars
-ENV NFS_GANESHA_VERSION_MAJOR  ${tag_ver_major}
-ENV NFS_GANESHA_VERSION_MINOR  ${tag_ver_minor}
-ENV NFS_GANESHA_VERSION_PATCH  ${tag_ver_patch}
+ENV NFS_GANESHA_VERSION_MAJOR=${tag_ver_major}
+ENV NFS_GANESHA_VERSION_MINOR=${tag_ver_minor}
+ENV NFS_GANESHA_VERSION_PATCH=${tag_ver_patch}
 
 ENV NFS_GANESHA_VERSION        ${tag_ver}
 ENV NTIRPC_VERSION             1.7.0
+# for ganesha 2.6.x
+#ENV NTIRPC_VERSION             1.6.3
+
 ENV TINI_VERSION               0.18.0
 
 # NFS daemon configuration
@@ -133,7 +136,8 @@ RUN set -eux \
   && curl -fSL --connect-timeout 30 https://github.com/nfs-ganesha/ntirpc/archive/v${NTIRPC_VERSION}.tar.gz | tar xz --strip-components=1 -C /usr/src/nfs-ganesha-${NFS_GANESHA_VERSION}/src/libntirpc/ \
   && cd /usr/src/nfs-ganesha-${NFS_GANESHA_VERSION} \
   && mkdir -p build && cd build \
-  && cmake -DCMAKE_BUILD_TYPE=Release -Wno-dev -DUSE_9P=OFF -DUSE_FSAL_CEPH=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_LUSTRE=OFF -DUSE_FSAL_XFS=OFF -DUSE_FSAL_RGW=OFF -DRADOS_URLS=OFF -DUSE_RADOS_RECOV=OFF -D_MSPAC_SUPPORT=OFF -DUSE_GSS=OFF ../src/ \
+  # -DALLOCATOR=(jemalloc|tcmalloc|libc) # il default jemalloc genera Segmentation Faults?
+  && cmake -DCMAKE_BUILD_TYPE=Release -Wno-dev -DUSE_9P=OFF -DUSE_FSAL_CEPH=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_LUSTRE=OFF -DUSE_FSAL_XFS=OFF -DUSE_FSAL_RGW=OFF -DRADOS_URLS=OFF -DUSE_RADOS_RECOV=OFF -D_MSPAC_SUPPORT=OFF -DUSE_GSS=OFF -DUSE_FSAL_LUSTRE=OFF -DALLOCATOR=libc ../src/ \
   && make \
   && make install \
   \
@@ -154,4 +158,4 @@ ADD Dockerfile filesystem /
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
 
-ENV APP_VER "2.7.0-33"
+ENV APP_VER "2.7.0-38"
