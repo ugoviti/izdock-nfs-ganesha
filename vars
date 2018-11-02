@@ -1,4 +1,4 @@
-build=38
+build=40
 
 image_from="debian:stretch-slim"
 
@@ -6,4 +6,4 @@ tag_latest=yes
 
 tag_ver_major=2
 tag_ver_minor=7
-tag_ver_patch=0
+tag_ver_patch=1

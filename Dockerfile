@@ -8,7 +8,7 @@ ENV APP_NAME    "nfs-ganesha"
 # default version vars
 ARG tag_ver_major=2
 ARG tag_ver_minor=7
-ARG tag_ver_patch=0
+ARG tag_ver_patch=1
 ARG tag_ver=${tag_ver_major}.${tag_ver_minor}.${tag_ver_patch}
 
 # nfs ganesha version vars
@@ -17,7 +17,7 @@ ENV NFS_GANESHA_VERSION_MINOR=${tag_ver_minor}
 ENV NFS_GANESHA_VERSION_PATCH=${tag_ver_patch}
 
 ENV NFS_GANESHA_VERSION        ${tag_ver}
-ENV NTIRPC_VERSION             1.7.0
+ENV NTIRPC_VERSION             1.7.1
 # for ganesha 2.6.x
 #ENV NTIRPC_VERSION             1.6.3
 
@@ -158,4 +158,4 @@ ADD Dockerfile filesystem /
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
 
-ENV APP_VER "2.7.0-38"
+ENV APP_VER "2.7.1-40"
