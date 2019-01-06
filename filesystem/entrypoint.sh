@@ -20,7 +20,7 @@ if [ $APP_RELINK = 1 ]; then
 [ ! -z "${APP_WORK}" ] && relink_dir "${APP_WORK_DEFAULT}" "${APP_WORK}"
 [ ! -z "${APP_SHARED}" ] && relink_dir "${APP_SHARED_DEFAULT}" "${APP_SHARED}"
 else
-  echo "Skipping APP directories relinking"
+  echo "=> Skipping APP directories relinking"
 fi
 }
 
