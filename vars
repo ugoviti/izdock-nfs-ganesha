@@ -1,4 +1,4 @@
-build=40
+tag_ver_build=40
 
 image_from="debian:stretch-slim"
 
