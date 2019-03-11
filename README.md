@@ -1,8 +1,6 @@
 **WARNING!!! WARNING!!! WARNING!!!**
-NFS-GANESHA is NOT a production ready software! (at least 2018-09-21) 
-It suffer from many and many bugs and stability issues. Never use it in production environment!
-Tested 2.3.x, 2.5.x, 2.6.x and 2.7.x relases, and all have many bugs, Segmentation Faults, lags, stuck problems, (NFS 4.0, 4.1 and 4.2), etc.. 
-Use nfs-kernel instead if you don't want loose your time.
+NOT a production ready software! (at least 2018-09-21)
+Use nfs-kernel instead
 **WARNING!!! WARNING!!! WARNING!!!**
 
 # Description
