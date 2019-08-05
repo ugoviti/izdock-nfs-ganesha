@@ -155,13 +155,12 @@ NFSV4 {
     Only_Numeric_Owners = true;
 }
 
-# test 20180831
-NFS_Core_Param
-{
-    MNT_Port = 20048;
-    fsid_device = true;
-}
-
+# test 20180831 (questo sembra far perdere tutti i mount points ai clients dopo che è stato riavviato il server nfs: Could not map fsid=0 to filesystem)
+#NFS_Core_Param
+#{
+#    MNT_Port = 20048;
+#    fsid_device = true;
+#}
 
 EXPORT {
     # Export Id (mandatory, each EXPORT must have a unique Export_Id)
