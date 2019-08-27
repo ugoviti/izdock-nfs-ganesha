@@ -4,8 +4,9 @@ FROM ${image_from}
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
 ENV APP_NAME        "nfs-ganesha"
-ENV APP_DESCRIPTION "NFS-Ganesha is an NFSv3,v4,v4.1 fileserver that runs in user mode on most UNIX/Linux systems"
+ENV APP_DESCRIPTION "NFS-Ganesha is an NFSv3, v4, v4.1 fileserver that runs in user mode on most UNIX/Linux systems"
 
+# https://github.com/nfs-ganesha/nfs-ganesha/releases
 # default version vars
 ARG tag_ver_major=2
 ARG tag_ver_minor=8
@@ -18,11 +19,12 @@ ENV NFS_GANESHA_VERSION_MINOR=${tag_ver_minor}
 ENV NFS_GANESHA_VERSION_PATCH=${tag_ver_patch}
 
 ENV NFS_GANESHA_VERSION        ${tag_ver}
+# https://github.com/nfs-ganesha/ntirpc/releases
+# for ganesha 2.8.x
 ENV NTIRPC_VERSION             1.8.0
+
 # for ganesha 2.6.x
 #ENV NTIRPC_VERSION             1.6.3
-
-#ENV TINI_VERSION               0.18.0
 
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"
@@ -61,10 +63,6 @@ RUN set -xe \
 #  && apt-get install -y \
 #    nfs-ganesha \
 #    nfs-ganesha-vfs \
-  # install tini
- #  && wget -q https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini_$TINI_VERSION-amd64.deb \
-#  && dpkg -i tini_$TINI_VERSION-amd64.deb \
-#  && rm -f tini_$TINI_VERSION-amd64.deb \
   # mkdir default export directory
   && mkdir -p ${EXPORT_PATH} \
   # cleanup system
