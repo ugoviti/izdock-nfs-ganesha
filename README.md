@@ -1,16 +1,10 @@
-**WARNING!!! WARNING!!! WARNING!!!**
-NOT a production ready software! (at least 2018-09-21)
-Use nfs-kernel instead
-**WARNING!!! WARNING!!! WARNING!!!**
-
 # Description
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
--	`2.7.0-BUILD`, `2.7.0`, `2.7`, `2`, `latest`
--	`2.6.3-BUILD`, `2.6.3`, `2.6`, `2`, `latest`
+-	`2.8.X-BUILD`, `2.8.X`, `2.8`, `2`, `latest`
 
-Where **BUILD** is the build number (look into project [Tags](tags/) page to discover the latest BUILD NUMBER)
+Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/nfs-ganesha/tags/) page to discover the latest versions)
 
 # Dockerfile
 - https://github.com/ugoviti/izdock/blob/master/nfs-ganesha/Dockerfile
@@ -27,7 +21,8 @@ This is an Open Source project with an active community of both company sponsore
 
 # How to use this image.
 
-This image only contains nfs-ganesha from [official download repository](https://download.nfs-ganesha.org/)
+This image only contains nfs-ganesha from [official home page](https://github.com/nfs-ganesha/nfs-ganesha)
+and from [official download repository](https://download.nfs-ganesha.org/)
 
 # Environment variables
 You can change the default behaviour using the following variables (with default values):
