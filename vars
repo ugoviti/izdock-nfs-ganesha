@@ -1,9 +1,7 @@
-tag_ver_build=14
+tag_ver_build=1
 
-image_from="debian:buster-slim"
+tag_ver_major=3
+tag_ver_minor=0
+tag_ver_patch=2
 
 tag_latest=yes
-
-tag_ver_major=2
-tag_ver_minor=8
-tag_ver_patch=2

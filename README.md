@@ -2,7 +2,7 @@
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
--	`2.8.X-BUILD`, `2.8.X`, `2.8`, `2`, `latest`
+-	`3.0.X-BUILD`, `3.0.X`, `3.0`, `3`, `latest`
 
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/nfs-ganesha/tags/) page to discover the latest versions)
 
