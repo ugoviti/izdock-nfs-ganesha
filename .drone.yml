@@ -50,4 +50,4 @@ steps:
 volumes:
   - name: cache
     host: 
-      path: /tmp/cache
+      path: /tmp/drone-cache
