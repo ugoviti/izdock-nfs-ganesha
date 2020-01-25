@@ -2,10 +2,10 @@ kind: pipeline
 name: default
 
 steps:
-  setup:
-    image: alpine
-    commands:
-      - echo "latest,3.2.1" > .tags
+- name: setup
+  image: alpine
+  commands:
+    - echo "latest,3.2.1" > .tags
 
 - name: docker-push-latest
   image: plugins/docker
