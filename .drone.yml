@@ -9,9 +9,9 @@ steps:
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
   commands:
-    - echo -n "IMAGE_FROM=$${IMAGE_FROM}" >> .env
-    - echo -n "APP_VER_MAJOR=$${APP_VER_MAJOR}" >> .env
-    - echo -n "APP_VER_MINOR=$${APP_VER_MINOR}" >> .env
+    - echo "IMAGE_FROM=$${IMAGE_FROM}" > .env
+    - echo "APP_VER_MAJOR=$${APP_VER_MAJOR}" >> .env
+    - echo "APP_VER_MINOR=$${APP_VER_MINOR}" >> .env
     - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
     - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
 
