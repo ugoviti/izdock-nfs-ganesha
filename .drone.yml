@@ -2,16 +2,6 @@ kind: pipeline
 name: default
 
 steps:
-- name: restore_cache
-  image: drillster/drone-volume-cache
-  settings:
-    restore: true
-    mount:
-    - ./cache
-  volumes:
-  - name: cache
-    path: /cache
-
 - name: docker-push-latest
   image: plugins/docker
   settings:
@@ -37,18 +27,11 @@ steps:
   when:
     event: [push, tag]
     branch: master
-
-- name: rebuild_cache
-  image: drillster/drone-volume-cache
-  settings:
-    rebuild: true
-    mount:
-    - ./cache
   volumes:
-  - name: cache
-    path: /cache
-
+  - name: docker
+    path: /var/lib/docker
+    
 volumes:
-  - name: cache
-    host: 
-      path: /tmp/drone-cache
+- name: docker
+  host:
+    path: /var/lib/docker
