@@ -4,8 +4,12 @@ name: default
 steps:
 - name: setup
   image: alpine
+  environment:
+    IMAGE_FROM: debian:buster-slim
+    APP_VER_MAJOR: 3
+    APP_VER_MINOR: 2
   commands:
-    - echo "latest,3.2.1" > .tags
+    - echo "latest,${APP_VER_MAJOR},${APP_VER_MAJOR}.${APP_VER_MINOR},${APP_VER_MAJOR}.${APP_VER_MINOR}-${DRONE_BUILD_NUMBER}" > .tags
 
 - name: docker-push-latest
   image: plugins/docker
@@ -17,15 +21,10 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    build_args:
-    - IMAGE_FROM: debian:buster-slim
-    - APP_VER_MAJOR: 3
-    - APP_VER_MINOR: 2
-    #tags:
-    #- latest
-    #- 3
-    #- 3.2
-    #- 3.2-${DRONE_BUILD_NUMBER}
+    build_args_from_env:
+    - IMAGE_FROM
+    - APP_VER_MAJOR
+    - APP_VER_MINOR
   when:
     event: [push, tag]
     branch: master
