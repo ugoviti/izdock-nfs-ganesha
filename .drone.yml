@@ -4,6 +4,7 @@ name: default
 steps:
 - name: docker-push-latest
   image: plugins/docker
+  privileged: true
   settings:
     repo: izdock/nfs-ganesha
     #cache_from: izdock/nfs-ganesha:latest
