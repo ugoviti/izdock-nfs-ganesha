@@ -1,0 +1,16 @@
+kind: pipeline
+name: nfs-ganesha
+
+steps:
+- name: docker
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    repo: izdock/nfs-ganesha
+    tags:
+      - latest
+      - '3.2'
+      - '3'
