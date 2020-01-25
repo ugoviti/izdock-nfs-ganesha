@@ -4,7 +4,7 @@ name: default
 steps:
 - name: setup
   image: alpine
-  environment: &default_environments
+  environment: &setup_env
     IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
@@ -15,7 +15,7 @@ steps:
 - name: publish
   image: plugins/docker
   environment:
-    <<: *default_environment
+    <<: *setup_env
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
