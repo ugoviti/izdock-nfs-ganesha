@@ -7,10 +7,9 @@ steps:
   privileged: true
   settings:
     repo: izdock/nfs-ganesha
-    #cache_from: izdock/nfs-ganesha:latest
+    cache_from: izdock/nfs-ganesha:latest
     create_repository: true
     use_cache: true
-    storage_path: /cache
     username:
       from_secret: docker_username
     password:
@@ -28,11 +27,3 @@ steps:
   when:
     event: [push, tag]
     branch: master
-  volumes:
-  - name: docker
-    path: /var/lib/docker
-    
-volumes:
-- name: docker
-  host:
-    path: /var/lib/docker
