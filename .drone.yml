@@ -4,7 +4,6 @@ name: nfs-ganesha
 steps:
 - name: docker-push-latest
   image: plugins/docker
-  privileged: true
   settings:
     repo: izdock/nfs-ganesha
     #cache_from: izdock/nfs-ganesha:latest
@@ -22,11 +21,7 @@ steps:
     - '3'
     - '3.2'
     - '3.2-${DRONE_BUILD_NUMBER}'
-  volumes:
-  - name: cache
-    path: /var/run/host.sock
 
-volumes:
-- name: cache
-  host:
-    path: /var/run/docker.sock
+cache:
+  mount:
+    - /drone/docker
