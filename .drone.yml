@@ -4,11 +4,6 @@ name: default
 steps:
 - name: docker-push-latest
   image: plugins/docker
-  environment:
-   IMAGE_FROM: debian:buster-slim
-   TAG_VER_MAJOR: 3
-   TAG_VER_MINOR: 2
-   TAG_VER_PATCH: 0
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
@@ -18,18 +13,16 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    build_args_from_env:
-    - IMAGE_FROM
-    - TAG_VER_MAJOR
-    - TAG_VER_MINOR
-    - TAG_VER_PATCH
-    commands:
-    - echo -n "${TAG_VER_MAJOR},${TAG_VER_MAJOR}.${TAG_VER_MINOR},${TAG_VER_MAJOR}.${TAG_VER_MINOR}-${DRONE_BUILD_NUMBER}" > .tags
-    #tags:
-    #- latest
-    #- 3
-    #- 3.2
-    #- 3.2-${DRONE_BUILD_NUMBER}
+    build_args:
+    - IMAGE_FROM: debian:buster-slim
+    - TAG_VER_MAJOR: 3
+    - TAG_VER_MINOR: 2
+    - TAG_VER_PATCH: 0
+    tags:
+    - latest
+    - 3
+    - 3.2
+    - 3.2-${DRONE_BUILD_NUMBER}
   when:
     event: [push, tag]
     branch: master
