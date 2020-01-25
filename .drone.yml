@@ -2,13 +2,13 @@ kind: pipeline
 name: nfs-ganesha
 
 steps:
-- name: prepare
-  image: busybox
-  commands:
-    - mkdir -p /cache/${DRONE_REPO}/docker
+- name: restore_cache
+  image: drillster/drone-volume-cache
+  settings:
+    restore: true
   volumes:
-    - name: cache
-      path: /cache
+  - name: cache
+    path: /drone/docker
 
 - name: docker-push-latest
   image: plugins/docker
@@ -31,14 +31,19 @@ steps:
     - '3'
     - '3.2'
     - '3.2-${DRONE_BUILD_NUMBER}'
+  when:
+    event: [push, tag]
+    branch: master
+
+- name: rebuild_cache
+  image: drillster/drone-volume-cache:latest
+  settings:
+    rebuild: true
   volumes:
-  - name: docker
-    path: /var/lib/docker
+  - name: cache
+    path: /drone/docker
 
 volumes:
-- name: cache
-  host:
-    path: /var/cache
-- name: docker
-  host:
-    path: /var/cache/${DRONE_REPO}/docker
+  - name: cache
+    host: 
+      path: /tmp/cache
