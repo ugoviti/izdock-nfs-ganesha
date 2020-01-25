@@ -5,10 +5,10 @@ steps:
 - name: docker-push-latest
   image: plugins/docker
   environment:
-  - image_from: debian:buster-slim
-  - tag_ver_major: 3
-  - tag_ver_minor: 2
-  - tag_ver_patch: 0
+   image_from: debian:buster-slim
+   tag_ver_major: 3
+   tag_ver_minor: 2
+   tag_ver_patch: 0
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
