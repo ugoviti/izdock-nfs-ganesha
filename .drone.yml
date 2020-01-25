@@ -3,7 +3,7 @@ name: nfs-ganesha
 
 steps:
 - name: docker-push-latest
-  image: plugins/docker
+  image: plugins/docker:dind
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
