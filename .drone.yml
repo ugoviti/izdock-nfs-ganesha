@@ -2,11 +2,21 @@ kind: pipeline
 name: nfs-ganesha
 
 steps:
+  - name: prepare
+    image: busybox
+    commands:
+      - mkdir -p /cache/${DRONE_REPO}/docker
+    volumes:
+      - name: cache
+        path: /cache
+
 - name: docker-push-latest
   image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
     #cache_from: izdock/nfs-ganesha:latest
+    create_repository: true
+    use_cache: true
     username:
       from_secret: docker_username
     password:
@@ -21,7 +31,14 @@ steps:
     - '3'
     - '3.2'
     - '3.2-${DRONE_BUILD_NUMBER}'
+  volumes:
+  - name: docker
+    path: /var/lib/docker
 
-cache:
-  mount:
-    - /drone/docker
+volumes:
+- name: cache
+  host:
+    path: /var/cache
+- name: docker
+  host:
+    path: /var/cache/${DRONE_REPO}/docker
