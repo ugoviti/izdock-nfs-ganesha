@@ -4,7 +4,7 @@ name: default
 steps:
 - name: setup
   image: alpine
-  environment: &default_environment
+  environment: &default_environments
     IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
