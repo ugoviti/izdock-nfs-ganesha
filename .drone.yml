@@ -22,4 +22,10 @@ steps:
     - '3.2'
     - '3.2-${DRONE_BUILD_NUMBER}'
   volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
+  - name: cache
+    path: /var/run/host.sock
+
+volumes:
+- name: cache
+  host:
+    path: /var/run/docker.sock
