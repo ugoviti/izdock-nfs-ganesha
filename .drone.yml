@@ -6,7 +6,7 @@ steps:
   image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
-    use_cache: true
+    cache_from: izdock/nfs-ganesha:latest
     username:
       from_secret: docker_username
     password:
