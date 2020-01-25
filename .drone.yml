@@ -24,10 +24,10 @@ steps:
     - TAG_VER_MINOR
     - TAG_VER_PATCH
     tags:
-    - latest
-    - ${TAG_VER_MAJOR}
-    - 3.2
-    - 3.2-${DRONE_BUILD_NUMBER}
+    - 'latest'
+    - '${TAG_VER_MAJOR}'
+    - '3.2'
+    - '3.2-${DRONE_BUILD_NUMBER}'
   when:
     event: [push, tag]
     branch: master
