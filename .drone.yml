@@ -5,12 +5,18 @@ steps:
 - name: docker
   image: plugins/docker
   settings:
+    repo: izdock/nfs-ganesha
     username:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    repo: izdock/nfs-ganesha
+    build_args:
+    - image_from: debian:buster-slim
+    - tag_ver_major: 3
+    - tag_ver_minor: 0
+    - tag_ver_patch: 2
     tags:
       - latest
-      - '3.2'
       - '3'
+      - '3.2'
+      - '3.2'-${DRONE_BUILD_NUMBER}

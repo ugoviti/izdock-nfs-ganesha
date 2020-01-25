@@ -22,13 +22,7 @@ ENV NFS_GANESHA_VERSION_MINOR=${tag_ver_minor}
 ENV NFS_GANESHA_VERSION        ${tag_ver}
 # https://github.com/nfs-ganesha/ntirpc/releases
 # for ganesha 3.0.x
-ENV NTIRPC_VERSION             3.2
-
-# for ganesha 2.8.x
-#ENV NTIRPC_VERSION             1.8.0
-
-# for ganesha 2.6.x
-#ENV NTIRPC_VERSION             1.6.3
+ENV NTIRPC_VERSION             ${tag_ver_major}.${tag_ver_minor}
 
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"
@@ -71,40 +65,6 @@ RUN set -xe \
   && mkdir -p ${EXPORT_PATH} \
   # cleanup system
   && rm -rf /var/lib/apt/lists/*
-
-# Alpine: install extra software (TEST)
-#RUN set -xe \
-#  && apk upgrade --update --no-cache \
-#  && apk add \
-#    tini \
-#    bash \
-#    e2fsprogs-extra \
-#    acl \
-#    rsync \
-#    nfs-utils \
-#    jemalloc \
-#    libnsl \
-#    krb5 \
-#    libcap \
-#    libnsl \
-#  && rm -rf /var/cache/apk/* /tmp/*
-
-# Alpine: compile nfs-ganesha (TEST)
-#RUN set -xe \
-#  && apk add --virtual .build-deps \
-#    curl \
-#    git \
-#    build-base \
-#    cmake \
-#    bison \
-#    flex \
-#    krb5-dev \
-#    libcap-dev \
-#    samba-dev \
-#    xfsprogs-dev \
-#    doxygen \
-#    jemalloc-dev \
-#    libnsl-dev \
 
 # Debian: compile nfs-ganesha (TEST)
 RUN set -eux \
