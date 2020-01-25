@@ -14,19 +14,20 @@ steps:
     password:
       from_secret: docker_password
     environment:
-    - ver_major: 3
-    - ver_minor: 2
-    - ver_patch: 0
-    build_args:
     - image_from: debian:buster-slim
-    - tag_ver_major: "3"
-    - tag_ver_minor: "2"
-    - tag_ver_patch: "0"
+    - tag_ver_major: 3
+    - tag_ver_minor: 2
+    - tag_ver_patch: 0
+    build_args_from_env:
+    - image_from
+    - tag_ver_major
+    - tag_ver_minor
+    - tag_ver_patch
     tags:
     - "latest"
-    - "${ver_major}"
-    - "${ver_major}.${ver_minor}"
-    - "${ver_major}.${ver_minor}-${DRONE_BUILD_NUMBER}"
+    - "${tag_ver_major}"
+    - "${tag_ver_major}.${tag_ver_minor}"
+    - "${tag_ver_major}.${tag_ver_minor}-${DRONE_BUILD_NUMBER}"
   when:
     event: [push, tag]
     branch: master
