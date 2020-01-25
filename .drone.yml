@@ -18,11 +18,10 @@ steps:
     - TAG_VER_MAJOR: 3
     - TAG_VER_MINOR: 2
     - TAG_VER_PATCH: 0
+    auto_tag: true
     tags:
     - latest
-    - 3
-    - 3.2
-    - 3.2-${DRONE_BUILD_NUMBER}
+    - ${DRONE_TAG}-${DRONE_BUILD_NUMBER}
   when:
     event: [push, tag]
     branch: master
