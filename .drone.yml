@@ -2,15 +2,18 @@ kind: pipeline
 name: default
 
 steps:
-- name: docker-push-latest
-  image: plugins/docker
-  environment:
+- name: setup
+  image: alpine
+  environment: $setupenv
     IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
   commands:
     - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
     - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
+
+- name: docker-push-latest
+  image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
@@ -19,6 +22,8 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
+    environment:
+      <<: *$setupenv
     build_args_from_env:
     - IMAGE_FROM
     - APP_VER_MAJOR
