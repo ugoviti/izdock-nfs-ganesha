@@ -18,7 +18,7 @@ steps:
     - TAG_VER_MAJOR: 3
     - TAG_VER_MINOR: 2
     - TAG_VER_PATCH: 0
-    auto_tag: true
+    #auto_tag: true
     tags:
     - latest
     - 3
