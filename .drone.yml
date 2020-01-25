@@ -3,7 +3,7 @@ name: nfs-ganesha
 
 steps:
 - name: docker-push-latest
-  image: plugins/docker:dind
+  image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
@@ -17,7 +17,9 @@ steps:
     - tag_ver_minor: 0
     - tag_ver_patch: 2
     tags:
-      - latest
-      - '3'
-      - '3.2'
-      - '3.2-${DRONE_BUILD_NUMBER}'
+    - latest
+    - '3'
+    - '3.2'
+    - '3.2-${DRONE_BUILD_NUMBER}'
+    volumes:
+    - /var/run/docker.sock:/var/run/host.sock:ro
