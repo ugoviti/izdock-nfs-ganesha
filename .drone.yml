@@ -19,6 +19,7 @@ steps:
     #cache_from: izdock/nfs-ganesha:latest
     create_repository: true
     use_cache: true
+    storage_path: /cache
     username:
       from_secret: docker_username
     password:
