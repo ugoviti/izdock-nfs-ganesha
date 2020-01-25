@@ -2,10 +2,11 @@ kind: pipeline
 name: nfs-ganesha
 
 steps:
-- name: docker
+- name: docker-push-latest
   image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
+    use_cache: true
     username:
       from_secret: docker_username
     password:
