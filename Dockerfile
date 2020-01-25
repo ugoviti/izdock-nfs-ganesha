@@ -1,5 +1,5 @@
-ARG image_from="debian:buster-slim"
-FROM ${image_from}
+ARG IMAGE_FROM="debian:buster-slim"
+FROM ${IMAGE_FROM}
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
@@ -8,21 +8,21 @@ ENV APP_DESCRIPTION "NFS-Ganesha is an NFSv3, v4, v4.1 fileserver that runs in u
 
 # https://github.com/nfs-ganesha/nfs-ganesha/releases
 # default version vars
-ARG tag_ver_major=3
-ARG tag_ver_minor=2
-#ARG tag_ver_patch=0
-#ARG tag_ver=${tag_ver_major}.${tag_ver_minor}.${tag_ver_patch}
-ARG tag_ver=${tag_ver_major}.${tag_ver_minor}
+ARG TAG_VER_MAJOR=3
+ARG TAG_VER_MINOR=2
+#ARG TAG_VER_PATCH=0
+#ARG TAG_VER=${TAG_VER_MAJOR}.${TAG_VER_MINOR}.${TAG_VER_PATCH}
+ARG TAG_VER=${TAG_VER_MAJOR}.${TAG_VER_MINOR}
 
 # nfs ganesha version vars
-ENV NFS_GANESHA_VERSION_MAJOR=${tag_ver_major}
-ENV NFS_GANESHA_VERSION_MINOR=${tag_ver_minor}
-#ENV NFS_GANESHA_VERSION_PATCH=${tag_ver_patch}
+ENV NFS_GANESHA_VERSION_MAJOR=${TAG_VER_MAJOR}
+ENV NFS_GANESHA_VERSION_MINOR=${TAG_VER_MINOR}
+#ENV NFS_GANESHA_VERSION_PATCH=${TAG_VER_PATCH}
 
-ENV NFS_GANESHA_VERSION        ${tag_ver}
+ENV NFS_GANESHA_VERSION        ${TAG_VER}
 # https://github.com/nfs-ganesha/ntirpc/releases
 # for ganesha 3.0.x
-ENV NTIRPC_VERSION             ${tag_ver_major}.${tag_ver_minor}
+ENV NTIRPC_VERSION             ${TAG_VER_MAJOR}.${TAG_VER_MINOR}
 
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"
