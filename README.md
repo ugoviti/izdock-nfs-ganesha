@@ -1,3 +1,5 @@
+[![Build Status](https://ci.initzero.it/api/badges/initzero/nfs-ganesha/status.svg)](https://ci.initzero.it/initzero/nfs-ganesha)
+
 # Description
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
