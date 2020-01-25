@@ -2,13 +2,13 @@ kind: pipeline
 name: nfs-ganesha
 
 steps:
-  - name: prepare
-    image: busybox
-    commands:
-      - mkdir -p /cache/${DRONE_REPO}/docker
-    volumes:
-      - name: cache
-        path: /cache
+- name: prepare
+  image: busybox
+  commands:
+    - mkdir -p /cache/${DRONE_REPO}/docker
+  volumes:
+    - name: cache
+      path: /cache
 
 - name: docker-push-latest
   image: plugins/docker
