@@ -19,6 +19,8 @@ steps:
   image: plugins/docker
   commands:
     - set
+    - cat .tags
+    - cat .env
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
