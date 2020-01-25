@@ -1,3 +1,9 @@
+global-variables:
+  environment: &default_environment
+    IMAGE_FROM: debian:buster-slim
+    APP_VER_MAJOR: 3
+    APP_VER_MINOR: 2
+
 kind: pipeline
 name: default
 
@@ -5,18 +11,15 @@ steps:
 - name: setup
   image: alpine
   environment:
-    IMAGE_FROM: debian:buster-slim
-    APP_VER_MAJOR: 3
-    APP_VER_MINOR: 2
+    <<: *default_environment
   commands:
-    - echo "IMAGE_FROM=$${IMAGE_FROM}" > .env
-    - echo "APP_VER_MAJOR=$${APP_VER_MAJOR}" >> .env
-    - echo "APP_VER_MINOR=$${APP_VER_MINOR}" >> .env
     - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
     - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
 
 - name: publish
   image: plugins/docker
+  environment:
+    <<: *default_environment
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
