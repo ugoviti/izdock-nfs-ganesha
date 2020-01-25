@@ -21,6 +21,8 @@ steps:
     auto_tag: true
     tags:
     - latest
+    - 3
+    - 3.2
     - ${DRONE_TAG}-${DRONE_BUILD_NUMBER}
   when:
     event: [push, tag]
