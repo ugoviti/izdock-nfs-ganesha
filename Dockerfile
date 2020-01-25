@@ -8,21 +8,27 @@ ENV APP_DESCRIPTION "NFS-Ganesha is an NFSv3, v4, v4.1 fileserver that runs in u
 
 # https://github.com/nfs-ganesha/nfs-ganesha/releases
 # default version vars
-ARG VER_MAJOR=3
-ARG VER_MINOR=2
-#ARG VER_PATCH=0
-#ARG VER_FULL=${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}
-ARG VER_FULL=${VER_MAJOR}.${VER_MINOR}
+ARG APP_VER_MAJOR=3
+ARG APP_VER_MINOR=2
+#ARG APP_VER_PATCH=0
+#ARG APP_VER=${APP_VER_MAJOR}.${APP_VER_MINOR}.${APP_VER_PATCH}
+ARG APP_VER=${APP_VER_MAJOR}.${APP_VER_MINOR}
 
 # nfs ganesha version vars
-ENV NFS_GANESHA_VERSION_MAJOR=${VER_MAJOR}
-ENV NFS_GANESHA_VERSION_MINOR=${VER_MINOR}
-#ENV NFS_GANESHA_VERSION_PATCH=${VER_PATCH}
+ENV NFS_GANESHA_VERSION_MAJOR=${APP_VER_MAJOR}
+ENV NFS_GANESHA_VERSION_MINOR=${APP_VER_MINOR}
+#ENV NFS_GANESHA_VERSION_PATCH=${APP_VER_PATCH}
 
-ENV NFS_GANESHA_VERSION        ${VER_FULL}
+ENV NFS_GANESHA_VERSION        ${APP_VER}
 # https://github.com/nfs-ganesha/ntirpc/releases
 # for ganesha 3.0.x
-ENV NTIRPC_VERSION             ${VER_MAJOR}.${VER_MINOR}
+ENV NTIRPC_VERSION             ${APP_VER_MAJOR}.${APP_VER_MINOR}
+
+# for ganesha 2.8.x
+#ENV NTIRPC_VERSION             1.8.0
+
+# for ganesha 2.6.x
+#ENV NTIRPC_VERSION             1.6.3
 
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"

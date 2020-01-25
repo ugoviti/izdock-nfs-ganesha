@@ -2,12 +2,16 @@ kind: pipeline
 name: default
 
 steps:
+  setup:
+    image: alpine
+    commands:
+      - echo "latest,3.2.1" > .tags
+
 - name: docker-push-latest
   image: plugins/docker
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
-    create_repository: true
     use_cache: true
     username:
       from_secret: docker_username
@@ -15,15 +19,13 @@ steps:
       from_secret: docker_password
     build_args:
     - IMAGE_FROM: debian:buster-slim
-    - VER_MAJOR: 3
-    - VER_MINOR: 2
-    - VER_PATCH: 0
-    #auto_tag: true
-    tags:
-    - latest
-    - 3
-    - 3.2
-    - 3.2-${DRONE_BUILD_NUMBER}
+    - APP_VER_MAJOR: 3
+    - APP_VER_MINOR: 2
+    #tags:
+    #- latest
+    #- 3
+    #- 3.2
+    #- 3.2-${DRONE_BUILD_NUMBER}
   when:
     event: [push, tag]
     branch: master
