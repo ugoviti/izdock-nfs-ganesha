@@ -23,11 +23,13 @@ steps:
     - TAG_VER_MAJOR
     - TAG_VER_MINOR
     - TAG_VER_PATCH
-    tags:
-    - 'latest'
-    - '${TAG_VER_MAJOR}'
-    - '3.2'
-    - '3.2-${DRONE_BUILD_NUMBER}'
+    commands:
+    - echo -n "${TAG_VER_MAJOR},${TAG_VER_MAJOR}.${TAG_VER_MINOR},${TAG_VER_MAJOR}.${TAG_VER_MINOR}-${DRONE_BUILD_NUMBER}" > .tags
+    #tags:
+    #- latest
+    #- 3
+    #- 3.2
+    #- 3.2-${DRONE_BUILD_NUMBER}
   when:
     event: [push, tag]
     branch: master
