@@ -19,4 +19,4 @@ steps:
       - latest
       - '3'
       - '3.2'
-      - '3.2'-${DRONE_BUILD_NUMBER}
+      - '3.2-${DRONE_BUILD_NUMBER}'
