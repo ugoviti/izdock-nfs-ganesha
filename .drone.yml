@@ -4,7 +4,7 @@ name: default
 steps:
 - name: setup
   image: alpine
-  environment: $setupenv
+  environment: $setup-environment
     IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
@@ -14,6 +14,8 @@ steps:
 
 - name: docker-push-latest
   image: plugins/docker
+  environment:
+    <<: *$setup-environment
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
@@ -22,8 +24,6 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    environment:
-      <<: *$setupenv
     build_args_from_env:
     - IMAGE_FROM
     - APP_VER_MAJOR
