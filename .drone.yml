@@ -19,14 +19,14 @@ steps:
     - ver_patch: 0
     build_args:
     - image_from: debian:buster-slim
-    - tag_ver_major: "$${ver_major}"
-    - tag_ver_minor: "$${ver_minor}"
-    - tag_ver_patch: "$${ver_patch}"
+    - tag_ver_major: "3"
+    - tag_ver_minor: "2"
+    - tag_ver_patch: "0"
     tags:
     - "latest"
-    - "$${ver_major}"
-    - "$${ver_major}.$${ver_minor}"
-    - "$${ver_major}.$${ver_minor}-${DRONE_BUILD_NUMBER}"
+    - "${ver_major}"
+    - "${ver_major}.${ver_minor}"
+    - "${ver_major}.${ver_minor}-${DRONE_BUILD_NUMBER}"
   when:
     event: [push, tag]
     branch: master
