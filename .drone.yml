@@ -9,7 +9,8 @@ steps:
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
   commands:
-    - echo "latest,${APP_VER_MAJOR},${APP_VER_MAJOR}.${APP_VER_MINOR},${APP_VER_MAJOR}.${APP_VER_MINOR}-${DRONE_BUILD_NUMBER}" > .tags
+    - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
+    - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
 
 - name: docker-push-latest
   image: plugins/docker
