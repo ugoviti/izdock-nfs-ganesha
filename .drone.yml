@@ -4,6 +4,11 @@ name: default
 steps:
 - name: docker-push-latest
   image: plugins/docker
+  environment:
+  - image_from: debian:buster-slim
+  - tag_ver_major: 3
+  - tag_ver_minor: 2
+  - tag_ver_patch: 0
   settings:
     repo: izdock/nfs-ganesha
     cache_from: izdock/nfs-ganesha:latest
@@ -13,11 +18,6 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    environment:
-    - image_from: debian:buster-slim
-    - tag_ver_major: 3
-    - tag_ver_minor: 2
-    - tag_ver_patch: 0
     build_args_from_env:
     - image_from
     - tag_ver_major
