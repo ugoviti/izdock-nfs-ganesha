@@ -123,6 +123,11 @@ VOLUME ["${EXPORT_PATH}"]
 # APP ports
 EXPOSE 111 111/udp 2049 20048 38465-38467
 
+# container pre-entrypoint variables
+ENV MULTISERVICE    "false"
+ENV ENTRYPOINT_TINI "true"
+ENV UMASK           0002
+
 # add files to container
 ADD Dockerfile filesystem VERSION README.md /
 

@@ -4,7 +4,7 @@ name: default
 volumes:
   - name: docker
     host:
-      path: /var/cache/${DRONE_REPO}/docker
+      path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
 
 steps:
 - name: setup
