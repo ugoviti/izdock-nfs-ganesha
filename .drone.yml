@@ -10,12 +10,15 @@ steps:
 - name: setup
   image: alpine
   environment: &setup_env
-    IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 3
     APP_VER_MINOR: 2
+    #APP_VER_PATCH: 0
   commands:
-    - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
-    - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
+    - echo -e -n "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
+    - echo -e -n "$${APP_VER_MAJOR}" > .tags
+    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}" >> .tags
+    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n ",latest" >> .tags
 
 - name: publish
   image: plugins/docker
@@ -23,8 +26,7 @@ steps:
     <<: *setup_env
   settings:
     repo: izdock/nfs-ganesha
-    cache_from: izdock/nfs-ganesha:latest
-    use_cache: true
+    #cache_from: izdock/nfs-ganesha:latest
     username:
       from_secret: docker_username
     password:
@@ -33,6 +35,7 @@ steps:
     - IMAGE_FROM
     - APP_VER_MAJOR
     - APP_VER_MINOR
+    #- APP_VER_PATCH
   volumes:
   - name: docker
     path: /var/lib/docker
