@@ -39,3 +39,4 @@ steps:
   when:
     event: [push, tag]
     branch: master
+    
