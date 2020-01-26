@@ -1,6 +1,11 @@
 kind: pipeline
 name: default
 
+volumes:
+  - name: docker
+    host:
+      path: /var/cache/${DRONE_REPO}/docker
+
 steps:
 - name: setup
   image: alpine
@@ -28,6 +33,9 @@ steps:
     - IMAGE_FROM
     - APP_VER_MAJOR
     - APP_VER_MINOR
+  volumes:
+  - name: docker
+    path: /var/lib/docker
   when:
     event: [push, tag]
     branch: master
