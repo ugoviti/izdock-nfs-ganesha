@@ -28,9 +28,9 @@ steps:
     repo: izdock/nfs-ganesha
     #cache_from: izdock/nfs-ganesha:latest
     username:
-      from_secret: docker_username
+      from_secret: DOCKER_USERNAME
     password:
-      from_secret: docker_password
+      from_secret: DOCKER_PASSWORD
     build_args_from_env:
     - IMAGE_FROM
     - APP_VER_MAJOR
