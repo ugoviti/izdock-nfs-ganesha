@@ -27,6 +27,7 @@ and from [official download repository](https://download.nfs-ganesha.org/)
 # Environment variables
 You can change the default behaviour using the following variables (with default values):
 
+```
 : ${EXPORT_PATH:="/exports"}
 : ${PSEUDO_PATH:="/exports"}
 : ${EXPORT_ID:=1}
@@ -45,6 +46,7 @@ You can change the default behaviour using the following variables (with default
 : ${GANESHA_LOGFILE:="/dev/stdout"}
 : ${LOG_LEVEL:="INFO"}
 : ${LOG_COMPONENT:="ALL=INFO;"}
+```
 
 ### Create a `Dockerfile` in your project
 
