@@ -1,5 +1,3 @@
-[![Build Status](https://ci.initzero.it/api/badges/initzero/docker-nfs-ganesha/status.svg)](https://ci.initzero.it/initzero/docker-nfs-ganesha)
-
 # Description
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
@@ -9,7 +7,7 @@ NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/nfs-ganesha/tags/) page to discover the latest versions)
 
 # Dockerfile
-- https://github.com/ugoviti/izdock/blob/master/nfs-ganesha/Dockerfile
+- https://github.com/ugoviti/izdock-nfs-ganesha/blob/master/Dockerfile
 
 # Features
 - Small image footprint based on [Debian 9 (stretch) Slim](https://hub.docker.com/_/debian/)
