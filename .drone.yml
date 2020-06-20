@@ -25,11 +25,11 @@ steps:
 - name: prep
   image: alpine
   commands:
-    - echo -e -n "${DRONE_COMMIT_SHA:0:7}" >> .tags
-    - echo -e -n ",${APP_VER}-${DRONE_BUILD_NUMBER}" >> .tags
-    - echo -e -n ",${APP_VER}" >> .tags
-    - echo -e -n ",${APP_VER%%.*}" >> .tags
-    - echo -e -n ",${APP_VER%.*}" >> .tags
+    - echo -e -n "$${DRONE_COMMIT_SHA:0:7}" >> .tags
+    - echo -e -n ",$${APP_VER}-$${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n ",$${APP_VER}" >> .tags
+    - echo -e -n ",$${APP_VER%%.*}" >> .tags
+    - echo -e -n ",$${APP_VER%.*}" >> .tags
     - echo -e -n ",latest" >> .tags
   when:
     event: [push, tag]
