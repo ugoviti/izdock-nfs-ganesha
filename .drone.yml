@@ -1,29 +1,42 @@
 kind: pipeline
-name: default
+name: nfs-ganesha
+
+platform:
+  os: linux
+  arch: amd64
 
 volumes:
   - name: docker
     host:
       path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
 
+environment:
+  APP_VER: 3.3
+  APP_VER_MAJOR: 3
+  APP_VER_MINOR: 3
+  #APP_VER: "${DRONE_TAG}"
+  #APP_VER_MAJOR: "${DRONE_TAG%%.*}"
+  #APP_VER_MINOR: "${DRONE_TAG%%.*}"
+  APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
+  APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
+  APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
+    
 steps:
-- name: setup
+- name: prep
   image: alpine
-  environment: &setup_env
-    APP_VER_MAJOR: 3
-    APP_VER_MINOR: 2
-    #APP_VER_PATCH: 0
   commands:
-    - echo -e -n "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
-    - echo -e -n "$${APP_VER_MAJOR}" > .tags
-    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}" >> .tags
-    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n "${DRONE_COMMIT_SHA:0:7}" >> .tags
+    - echo -e -n ",${APP_VER}-${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n ",${APP_VER}" >> .tags
+    - echo -e -n ",${APP_VER%%.*}" >> .tags
+    - echo -e -n ",${APP_VER%.*}" >> .tags
     - echo -e -n ",latest" >> .tags
+  when:
+    event: [push, tag]
+    branch: master
 
-- name: publish
+- name: build-publish
   image: plugins/docker
-  environment:
-    <<: *setup_env
   settings:
     repo: izdock/nfs-ganesha
     #cache_from: izdock/nfs-ganesha:latest
@@ -32,14 +45,13 @@ steps:
     password:
       from_secret: DOCKER_PASSWORD
     build_args_from_env:
-    - IMAGE_FROM
-    - APP_VER_MAJOR
-    - APP_VER_MINOR
-    #- APP_VER_PATCH
+    - APP_VER
+    - APP_VER_BUILD
+    - APP_BUILD_COMMIT
+    - APP_BUILD_DATE
   volumes:
   - name: docker
     path: /var/lib/docker
   when:
     event: [push, tag]
     branch: master
-    

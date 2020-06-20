@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# entrypoint hooks
-hooks_always() {
-
 # environment variables
 : ${EXPORT_PATH:="/exports"}
 : ${PSEUDO_PATH:="/exports"}
@@ -220,9 +217,3 @@ init_dbus
 
 echo "Generated NFS-Ganesha config:"
 cat ${GANESHA_CONFIG}
-
-echo "--> Starting NFS Ganesha"
-exec /usr/bin/ganesha.nfsd -F -L ${GANESHA_LOGFILE} -f ${GANESHA_CONFIG}
-}
-
-hooks_always
