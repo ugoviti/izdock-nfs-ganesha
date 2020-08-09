@@ -145,27 +145,6 @@ LOG {
     }
 }
 
-EXPORT
-{
-      # Export Id (mandatory, each EXPORT must have a unique Export_Id)
-      Export_Id = 0;
-
-      # Exported path (mandatory)
-      Path = /nonexistent;
-
-      # Pseudo Path (required for NFS v4)
-      Pseudo = /nonexistent;
-
-      # Required for access (default is None)
-      # Could use CLIENT blocks instead
-      Access_Type = RW;
-
-      # Exporting FSAL
-      FSAL {
-              Name = VFS;
-      }
-}
-
 # test 20180831 (questo sembra far perdere tutti i mount points ai clients dopo che è stato riavviato il server nfs: Could not map fsid=0 to filesystem)
 #NFS_Core_Param
 #{
@@ -199,8 +178,8 @@ EXPORT {
     Pseudo = "${PSEUDO_PATH}";
 
     # Access control options
-    #Access_Type = NONE;
-    Access_Type = ${ACCESS_TYPE};
+    Access_Type = NONE;
+    #Access_Type = ${ACCESS_TYPE};
     Squash = ${SQUASH_MODE};
 
     # NFS protocol options
@@ -218,11 +197,10 @@ EXPORT {
     Anonymous_uid = $(id -u $ANON_USER);
     Anonymous_gid = $(awk -F: '/^'$ANON_GROUP':/ { print $3 }' /etc/group);
 
-    # test 20200810
-    #CLIENT {
-    #  Clients = ${CLIENT_LIST};
-    #  Access_Type = ${ACCESS_TYPE};
-    #}
+    CLIENT {
+      Clients = ${CLIENT_LIST};
+      Access_Type = ${ACCESS_TYPE};
+    }
 
     Filesystem_id = 1.1;
     
@@ -231,13 +209,15 @@ EXPORT {
       name = VFS;
     }
 }
-
 END
 }
 
 if [ ! -f ${EXPORT_PATH} ]; then
     mkdir -p "${EXPORT_PATH}"
 fi
+
+# fix not existing /etc/mtab
+[ ! -e "/etc/mtab" ] && ln -s /proc/mounts /etc/mtab
 
 echo "Initializing Ganesha NFS server"
 echo "=================================="
