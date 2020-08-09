@@ -145,25 +145,11 @@ LOG {
     }
 }
 
-EXPORT
-{
-      # Export Id (mandatory, each EXPORT must have a unique Export_Id)
-      Export_Id = 0;
-
-      # Exported path (mandatory)
-      Path = /nonexistent;
-
-      # Pseudo Path (required for NFS v4)
-      Pseudo = /nonexistent;
-
-      # Required for access (default is None)
-      # Could use CLIENT blocks instead
-      Access_Type = RW;
-
-      # Exporting FSAL
-      FSAL {
-              Name = VFS;
-      }
+NFSV4 {
+    Graceless = ${GRACELESS};
+    Grace_Period = ${GRACE_PERIOD};
+    Allow_Numeric_Owners = true;
+    Only_Numeric_Owners = true;
 }
 
 # test 20180831 (questo sembra far perdere tutti i mount points ai clients dopo che è stato riavviato il server nfs: Could not map fsid=0 to filesystem)
@@ -172,21 +158,6 @@ EXPORT
 #    MNT_Port = 20048;
 #    fsid_device = true;
 #}
-
-# test 20200810
-NFS_Core_Param
-{
-    MNT_Port = 20048;
-    NLM_Port = 32803;
-    fsid_device = false;
-}
-
-NFSV4 {
-    Graceless = ${GRACELESS};
-    Grace_Period = ${GRACE_PERIOD};
-    Allow_Numeric_Owners = true;
-    Only_Numeric_Owners = true;
-}
 
 EXPORT {
     # Export Id (mandatory, each EXPORT must have a unique Export_Id)
@@ -199,8 +170,7 @@ EXPORT {
     Pseudo = "${PSEUDO_PATH}";
 
     # Access control options
-    #Access_Type = NONE;
-    Access_Type = ${ACCESS_TYPE};
+    Access_type = NONE;
     Squash = ${SQUASH_MODE};
 
     # NFS protocol options
@@ -208,7 +178,6 @@ EXPORT {
     Protocols = ${PROTOCOLS};
     SecType = ${SEC_TYPE};
     Disable_ACL = ${DISABLE_ACL};
-    
     # changed to false, otherwise normal users can't access directories where gid=0
     Manage_Gids = false;
 
@@ -218,17 +187,14 @@ EXPORT {
     Anonymous_uid = $(id -u $ANON_USER);
     Anonymous_gid = $(awk -F: '/^'$ANON_GROUP':/ { print $3 }' /etc/group);
 
-    # test 20200810
-    #CLIENT {
-    #  Clients = ${CLIENT_LIST};
-    #  Access_Type = ${ACCESS_TYPE};
-    #}
+    CLIENT {
+        Clients = ${CLIENT_LIST};
+        Access_Type = ${ACCESS_TYPE};
+    }
 
-    Filesystem_id = 1.1;
-    
     # Exporting FSAL
     FSAL {
-      name = VFS;
+        name = VFS;
     }
 }
 
