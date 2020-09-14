@@ -68,6 +68,7 @@ RUN set -xe \
   # mkdir default export directory
   && mkdir -p ${EXPORT_PATH} \
   # fix missing /etc/mtab
+  && rm -f /etc/mtab \
   && ln -s /proc/mounts /etc/mtab \
   # cleanup system
   && rm -rf /var/lib/apt/lists/*
