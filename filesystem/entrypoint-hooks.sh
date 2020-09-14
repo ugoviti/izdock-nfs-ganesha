@@ -206,7 +206,7 @@ EXPORT {
     
     # Exporting FSAL
     FSAL {
-      name = VFS:
+      name = VFS;
     }
 }
 END
