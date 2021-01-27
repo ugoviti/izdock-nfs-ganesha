@@ -11,9 +11,9 @@ volumes:
       path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
 
 environment:
-  APP_VER: 3.3
+  APP_VER: 3.4
   APP_VER_MAJOR: 3
-  APP_VER_MINOR: 3
+  APP_VER_MINOR: 4
   #APP_VER: "${DRONE_TAG}"
   #APP_VER_MAJOR: "${DRONE_TAG%%.*}"
   #APP_VER_MINOR: "${DRONE_TAG%%.*}"

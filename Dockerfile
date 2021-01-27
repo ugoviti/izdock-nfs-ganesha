@@ -12,7 +12,7 @@ ENV APP_DESCRIPTION "NFS-Ganesha Userspace NFS File Server"
 # https://github.com/nfs-ganesha/nfs-ganesha/releases
 # default version vars
 ARG APP_VER_MAJOR=3
-ARG APP_VER_MINOR=3
+ARG APP_VER_MINOR=4
 #ARG APP_VER_PATCH=0
 
 #ARG APP_VER=${APP_VER_MAJOR}.${APP_VER_MINOR}.${APP_VER_PATCH}
