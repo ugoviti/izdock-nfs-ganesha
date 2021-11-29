@@ -38,7 +38,7 @@ ENV NTIRPC_VERSION             ${APP_VER_MAJOR}.${APP_VER_MINOR}
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"
 
-# Debian: install needed software
+# debian: install needed software
 RUN set -xe \
   && apt-get update \
   && apt-get upgrade -y \
@@ -71,7 +71,8 @@ RUN set -xe \
   && rm -f /etc/mtab \
   && ln -s /proc/mounts /etc/mtab \
   # cleanup system
-  && rm -rf /var/lib/apt/lists/*
+  apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+  rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Debian: compile nfs-ganesha (TEST)
 RUN set -eux \
