@@ -1,57 +1,78 @@
 kind: pipeline
 name: nfs-ganesha
 
+environment:
+  APP_VER: 4.0.12
+
+trigger:
+  event:
+  - push
+  branch:
+  - main
+
 platform:
   os: linux
   arch: amd64
 
+#concurrency:
+#  limit: 1
+
+workspace:
+  base: /drone
+  path: src
+
 volumes:
-  - name: docker
+  - name: cache
     host:
       path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
-
-environment:
-  APP_VER: 3.4
-  APP_VER_MAJOR: 3
-  APP_VER_MINOR: 4
-  #APP_VER: "${DRONE_TAG}"
-  #APP_VER_MAJOR: "${DRONE_TAG%%.*}"
-  #APP_VER_MINOR: "${DRONE_TAG%%.*}"
-  APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
-  APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
-  APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
     
 steps:
-- name: prep
+- name: restore-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    restore: true
+    mount:
+    - /drone/docker
+
+- name: setup
   image: alpine
   commands:
-    - echo -e -n "$${DRONE_COMMIT_SHA:0:7}" >> .tags
-    - echo -e -n ",$${APP_VER}-$${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n "$${APP_VER}-${DRONE_COMMIT_SHA:0:7}" > .tags
+    - echo -e -n ",$${APP_VER}-${DRONE_BUILD_NUMBER}" >> .tags
     - echo -e -n ",$${APP_VER}" >> .tags
-    - echo -e -n ",$${APP_VER%%.*}" >> .tags
     - echo -e -n ",$${APP_VER%.*}" >> .tags
+    - echo -e -n ",$${APP_VER%%.*}" >> .tags
     - echo -e -n ",latest" >> .tags
-  when:
-    event: [push, tag]
-    branch: master
 
 - name: build-publish
   image: plugins/docker
+  environment:
+    APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
+    APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
+    APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
   settings:
     repo: izdock/nfs-ganesha
-    #cache_from: izdock/nfs-ganesha:latest
-    username:
-      from_secret: DOCKER_USERNAME
-    password:
-      from_secret: DOCKER_PASSWORD
     build_args_from_env:
+    - IMAGE_FROM
     - APP_VER
     - APP_VER_BUILD
     - APP_BUILD_COMMIT
     - APP_BUILD_DATE
+    - MULTISERVICE
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+
+- name: rebuild-cache
+  image: drillster/drone-volume-cache
   volumes:
-  - name: docker
-    path: /var/lib/docker
-  when:
-    event: [push, tag]
-    branch: master
+  - name: cache
+    path: /cache
+  settings:
+    rebuild: true
+    mount:
+    - /drone/docker
