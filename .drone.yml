@@ -6,9 +6,7 @@ environment:
 
 trigger:
   event:
-  - push
-  branch:
-  - main
+  - tag
 
 platform:
   os: linux
