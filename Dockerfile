@@ -11,36 +11,36 @@ ENV APP_DESCRIPTION "NFS-Ganesha Userspace NFS File Server"
 
 # https://github.com/nfs-ganesha/nfs-ganesha/releases
 # default version vars
-ARG APP_VER_MAJOR=4
-ARG APP_VER_MINOR=0
-ARG APP_VER_PATCH=12
+ARG APP_VER=4.0.12
 
-ARG APP_VER=${APP_VER_MAJOR}.${APP_VER_MINOR}.${APP_VER_PATCH}
-#ARG APP_VER=${APP_VER_MAJOR}.${APP_VER_MINOR}
-ENV APP_VER=${APP_VER}
-
-# nfs ganesha version vars
-ENV NFS_GANESHA_VERSION_MAJOR=${APP_VER_MAJOR}
-ENV NFS_GANESHA_VERSION_MINOR=${APP_VER_MINOR}
-ENV NFS_GANESHA_VERSION_PATCH=${APP_VER_PATCH}
-
-ENV NFS_GANESHA_VERSION        ${APP_VER}
 # https://github.com/nfs-ganesha/ntirpc/releases
+# for ganesha 4.0.x
+ARG NTIRPC_VERSION=4.0
+
 # for ganesha 3.0.x
-#ENV NTIRPC_VERSION             ${APP_VER_MAJOR}.${APP_VER_MINOR}.${APP_VER_PATCH}
-ENV NTIRPC_VERSION             ${APP_VER_MAJOR}.${APP_VER_MINOR}
+#ARG NTIRPC_VERSION=3.0
 
 # for ganesha 2.8.x
-#ENV NTIRPC_VERSION             1.8.0
+#ARG NTIRPC_VERSION=1.8.0
 
 # for ganesha 2.6.x
-#ENV NTIRPC_VERSION             1.6.3
+#ARG NTIRPC_VERSION=1.6.3
+
+## set internal variables using defined args
+ENV APP_VER             ${APP_VER}
+ENV NFS_GANESHA_VERSION ${APP_VER}
+ENV NTIRPC_VERSION      ${NTIRPC_VERSION}
 
 # NFS daemon configuration
 ENV EXPORT_PATH "/exports"
 
 # debian: install needed software
 RUN set -xe && \
+  APP_VER_MAJOR_MINOR=${APP_VER%.*} && \
+  APP_VER_MAJOR=${APP_VER%%.*} && \
+  APP_VER_MINOR=${APP_VER_MAJOR_MINOR##*.} && \
+  APP_VER_PATCH=${APP_VER##*.} && \
+  \
   apt-get update && apt-get upgrade -y && \
   apt-get install -y --no-install-recommends \
     tini \
