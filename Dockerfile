@@ -36,9 +36,9 @@ ENV EXPORT_PATH "/exports"
 
 # debian: install needed software
 RUN set -xe && \
-  APP_VER_MAJOR_MINOR=${APP_VER%.*} && \
+  APP_VER_MAMIN=${APP_VER%.*} && \
   APP_VER_MAJOR=${APP_VER%%.*} && \
-  APP_VER_MINOR=${APP_VER_MAJOR_MINOR##*.} && \
+  APP_VER_MINOR=${APP_VER_MAMIN##*.} && \
   APP_VER_PATCH=${APP_VER##*.} && \
   \
   apt-get update && apt-get upgrade -y && \
