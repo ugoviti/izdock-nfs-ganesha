@@ -5,12 +5,18 @@ set -e
 : ${EXPORT_PATH:="/exports"}
 : ${PSEUDO_PATH:="/exports"}
 : ${EXPORT_ID:=1}
+# 4 = solo NFSv4 (minor version in NFSV4_MINOR_VERSIONS); "3, 4" per abilitare anche NFSv3
 : ${PROTOCOLS:=4}
-: ${TRANSPORTS:="UDP, TCP"}
+# NFSv4 funziona solo su TCP; da ganesha 14 NFS non ascolta piu' su UDP
+: ${TRANSPORTS:="TCP"}
+: ${NFSV4_MINOR_VERSIONS:="0, 1, 2"}
 : ${SEC_TYPE:="sys"}
 : ${SQUASH_MODE:="No_Root_Squash"}
 : ${GRACELESS:=false}
 : ${GRACE_PERIOD:=90}
+: ${LEASE_LIFETIME:=60}
+# fs = stato dei client in /var/lib/nfs/ganesha (persiste solo se e' un volume); none = nessuna recovery
+: ${RECOVERY_BACKEND:="fs"}
 : ${ACCESS_TYPE:="RW"}
 #: ${CLIENT_LIST:="*"}
 : ${CLIENT_LIST:="10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"}
@@ -21,6 +27,30 @@ set -e
 : ${GANESHA_LOGFILE:="/dev/stdout"}
 : ${LOG_LEVEL:="INFO"}
 : ${LOG_COMPONENT:="ALL=INFO;"}
+
+# NLM (lock NFSv3) e rquota servono solo con NFSv3
+case "${PROTOCOLS}" in
+  *3*) : ${ENABLE_NLM:=true} ;;
+  *)   : ${ENABLE_NLM:=false} ;;
+esac
+: ${ENABLE_RQUOTA:=false}
+
+# PR_SET_IO_FLUSHER evita il deadlock con client NFS sullo stesso nodo sotto pressione di memoria.
+# Richiede CAP_SYS_RESOURCE: con false ganesha non parte se manca (meglio di perdere la protezione in silenzio)
+: ${ALLOW_SET_IO_FLUSHER_FAIL:=false}
+
+# metriche prometheus su http://<pod>:9587/metrics
+: ${ENABLE_METRICS:=true}
+: ${MONITORING_PORT:=9587}
+
+# limiti della cache metadati (MDCACHE). Entries_HWMark e' una soglia "morbida":
+# le entry referenziate (file aperti, chunk di directory) possono superarla.
+: ${MDCACHE_ENTRIES_HWMARK:=50000}
+: ${MDCACHE_ENTRIES_RELEASE_SIZE:=100}
+: ${MDCACHE_CHUNKS_HWMARK:=1000}
+: ${MDCACHE_CHUNKS_LWMARK:=500}
+: ${MDCACHE_DIR_CHUNK:=128}
+: ${MDCACHE_LRU_RUN_INTERVAL:=90}
 
 # nfs config requirements
 : ${IDMAP_DOMAIN:="$(hostname -d)"}
@@ -52,7 +82,10 @@ init_rpc() {
         touch /run/rpcbind/rpcbind.xdr /run/rpcbind/portmap.xdr
     fi
     rpcbind || return 0
-    rpc.statd -L || return 0
+    # rpc.statd serve solo ai lock NFSv3 (NLM)
+    if [ "${ENABLE_NLM}" = "true" ]; then
+        rpc.statd -L || return 0
+    fi
 
     # not needed with ganesha
     # rpc.gssd || return 0
@@ -83,6 +116,37 @@ init_dbus() {
 # and then configure one of them as MDS:
 # GLUSTER { PNFS_MDS = ${WITH_PNFS}; }
 
+# livelli di default dei componenti di log. Da ganesha 6 un componente scritto due volte
+# e' un errore fatale: quelli presenti in LOG_COMPONENT sostituiscono il default.
+# Se LOG_COMPONENT contiene ALL i default non vengono scritti (ALL vale per tutti).
+LOG_COMPONENT_DEFAULTS="MEMLEAKS=FATAL; FSAL=FATAL; NFSPROTO=FATAL; NFS_V4=FATAL; EXPORT=FATAL;
+  FILEHANDLE=FATAL; DISPATCH=FATAL; MDCACHE=FATAL; MDCACHE_LRU=FATAL; HASHTABLE=FATAL;
+  HASHTABLE_CACHE=FATAL; DUPREQ=FATAL; INIT=DEBUG; MAIN=DEBUG; IDMAPPER=FATAL; NFS_READDIR=FATAL;
+  NFS_V4_LOCK=FATAL; CONFIG=FATAL; CLIENTID=FATAL; SESSIONS=FATAL; PNFS=FATAL; RW_LOCK=FATAL;
+  NLM=FATAL; XPRT=FATAL; NFS_CB=FATAL; THREAD=FATAL; NFS_V4_ACL=FATAL; STATE=FATAL; FSAL_UP=FATAL;
+  DBUS=FATAL;"
+
+log_components() {
+    # nomi richiesti in LOG_COMPONENT, in maiuscolo (es. "ALL=INFO;CLIENTID=DEBUG;" -> " ALL CLIENTID ")
+    wanted=" $(echo "${LOG_COMPONENT}" | tr ';' '\n' | sed -n 's/^[[:space:]]*\([A-Za-z_0-9]*\)[[:space:]]*=.*/\1/p' | tr 'a-z' 'A-Z' | tr '\n' ' ') "
+    case "$wanted" in
+      *" ALL "*) ;;
+      *)
+        echo "${LOG_COMPONENT_DEFAULTS}" | tr ';' '\n' | while IFS='=' read -r name level; do
+            name=$(echo "$name" | tr -d '[:space:]')
+            [ -z "$name" ] && continue
+            case "$wanted" in *" $name "*) continue ;; esac
+            echo "      ${name} = $(echo "$level" | tr -d '[:space:]');"
+        done
+        ;;
+    esac
+    echo "${LOG_COMPONENT}" | tr ';' '\n' | while IFS='=' read -r name level; do
+        name=$(echo "$name" | tr -d '[:space:]' | tr 'a-z' 'A-Z')
+        [ -z "$name" ] && continue
+        echo "      ${name} = $(echo "$level" | tr -d '[:space:]');"
+    done
+}
+
 bootstrap_config() {
     echo "--> Writing configuration"
     cat <<END >${GANESHA_CONFIG}
@@ -95,38 +159,7 @@ LOG {
     Default_Log_Level = ${LOG_LEVEL};
 
     Components {
-      #ALL = DEBUG;
-      MEMLEAKS = FATAL;
-      FSAL = FATAL;
-      NFSPROTO = FATAL;
-      NFS_V4 = FATAL;
-      EXPORT = FATAL;
-      FILEHANDLE = FATAL;
-      DISPATCH = FATAL;
-      CACHE_INODE = FATAL;
-      CACHE_INODE_LRU = FATAL;
-      HASHTABLE = FATAL;
-      HASHTABLE_CACHE = FATAL;
-      DUPREQ = FATAL;
-      INIT = DEBUG;
-      MAIN = DEBUG;
-      IDMAPPER = FATAL;
-      NFS_READDIR = FATAL;
-      NFS_V4_LOCK = FATAL;
-      CONFIG = FATAL;
-      CLIENTID = FATAL;
-      SESSIONS = FATAL;
-      PNFS = FATAL;
-      RW_LOCK = FATAL;
-      NLM = FATAL;
-      RPC = FATAL;
-      NFS_CB = FATAL;
-      THREAD = FATAL;
-      NFS_V4_ACL = FATAL;
-      STATE = FATAL;
-      FSAL_UP = FATAL;
-      DBUS = FATAL;
-      ${LOG_COMPONENT}
+$(log_components)
     }
 
     Format {
@@ -155,16 +188,34 @@ LOG {
 # test 20200810
 NFS_Core_Param
 {
+    Protocols = ${PROTOCOLS};
     MNT_Port = 20048;
     NLM_Port = 32803;
     fsid_device = false;
+    Enable_NLM = ${ENABLE_NLM};
+    Enable_RQUOTA = ${ENABLE_RQUOTA};
+    Allow_Set_Io_Flusher_Fail = ${ALLOW_SET_IO_FLUSHER_FAIL};
+    Enable_Metrics = ${ENABLE_METRICS};
+    Monitoring_Port = ${MONITORING_PORT};
 }
 
 NFSV4 {
     Graceless = ${GRACELESS};
     Grace_Period = ${GRACE_PERIOD};
+    Lease_Lifetime = ${LEASE_LIFETIME};
+    Minor_Versions = ${NFSV4_MINOR_VERSIONS};
+    RecoveryBackend = ${RECOVERY_BACKEND};
     Allow_Numeric_Owners = true;
     Only_Numeric_Owners = true;
+}
+
+MDCACHE {
+    Entries_HWMark = ${MDCACHE_ENTRIES_HWMARK};
+    Entries_Release_Size = ${MDCACHE_ENTRIES_RELEASE_SIZE};
+    Chunks_HWMark = ${MDCACHE_CHUNKS_HWMARK};
+    Chunks_LWMark = ${MDCACHE_CHUNKS_LWMARK};
+    Dir_Chunk = ${MDCACHE_DIR_CHUNK};
+    LRU_Run_Interval = ${MDCACHE_LRU_RUN_INTERVAL};
 }
 
 EXPORT {
@@ -187,7 +238,7 @@ EXPORT {
     Protocols = ${PROTOCOLS};
     SecType = ${SEC_TYPE};
     Disable_ACL = ${DISABLE_ACL};
-    
+
     # changed to false, otherwise normal users can't access directories where gid=0
     Manage_Gids = false;
 
@@ -203,7 +254,7 @@ EXPORT {
     }
 
     Filesystem_id = 1.1;
-    
+
     # Exporting FSAL
     FSAL {
       name = VFS;
@@ -212,9 +263,11 @@ EXPORT {
 END
 }
 
-if [ ! -f ${EXPORT_PATH} ]; then
+if [ ! -d "${EXPORT_PATH}" ]; then
     mkdir -p "${EXPORT_PATH}"
 fi
+
+mkdir -p /var/lib/nfs/ganesha
 
 # fix not existing /etc/mtab
 [ ! -e "/etc/mtab" ] && ln -s /proc/mounts /etc/mtab

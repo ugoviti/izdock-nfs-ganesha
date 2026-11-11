@@ -2,7 +2,8 @@ kind: pipeline
 name: nfs-ganesha
 
 environment:
-  APP_VER: 4.0.12
+  APP_VER: 15.11
+  NTIRPC_VERSION: 15.11
   APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
   APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
   APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
@@ -46,6 +47,7 @@ steps:
     build_args_from_env:
     - IMAGE_FROM
     - APP_VER
+    - NTIRPC_VERSION
     - APP_VER_BUILD
     - APP_BUILD_COMMIT
     - APP_BUILD_DATE

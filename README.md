@@ -2,7 +2,8 @@
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
--	`3.x-BUILD`, `3.X`, `3`, `latest`
+-	`15.X-BUILD`, `15.X`, `15`, `latest`
+-	`3.4-BUILD`, `3.4` (old, Debian buster)
 
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/nfs-ganesha/tags/) page to discover the latest versions)
 
@@ -10,8 +11,9 @@ Where **X** is the patch version number, and **BUILD** is the build number (look
 - https://github.com/ugoviti/izdock-nfs-ganesha/blob/master/Dockerfile
 
 # Features
-- Small image footprint based on [Debian 9 (stretch) Slim](https://hub.docker.com/_/debian/)
-- NFS Ganesha binaries are taken from upstream official repository
+- Small image footprint based on [Debian 13 (trixie) Slim](https://hub.docker.com/_/debian/), multi-stage build
+- NFS Ganesha binaries are compiled from the upstream official repository (FSAL VFS only, jemalloc allocator)
+- Upstream uses a rolling release model since V8.0: every non-prerelease `Vx.y` tag is a stable release
 - Using [tini](https://github.com/krallin/tini) as init process
 - Many customizable variables to use
 
@@ -24,6 +26,13 @@ This is an Open Source project with an active community of both company sponsore
 This image only contains nfs-ganesha from [official home page](https://github.com/nfs-ganesha/nfs-ganesha)
 and from [official download repository](https://download.nfs-ganesha.org/)
 
+# Requirements
+- `CAP_SYS_RESOURCE` (`--cap-add SYS_RESOURCE`): ganesha sets `PR_SET_IO_FLUSHER` at startup to avoid
+  kernel deadlocks when NFS clients run on the same node and memory is low. Without the capability
+  ganesha refuses to start, unless `ALLOW_SET_IO_FLUSHER_FAIL=true` (protection disabled).
+- `CAP_DAC_READ_SEARCH` (`--cap-add DAC_READ_SEARCH`): needed by FSAL VFS (`open_by_handle_at`).
+- The process is `ganesha.nfsd`, child of `tini` (PID 1): if ganesha dies the container exits and restarts.
+
 # Environment variables
 You can change the default behaviour using the following variables (with default values):
 
@@ -31,12 +40,15 @@ You can change the default behaviour using the following variables (with default
 : ${EXPORT_PATH:="/exports"}
 : ${PSEUDO_PATH:="/exports"}
 : ${EXPORT_ID:=1}
-: ${PROTOCOLS:=4}
-: ${TRANSPORTS:="UDP, TCP"}
+: ${PROTOCOLS:=4}                     # "3, 4" to enable NFSv3 too
+: ${TRANSPORTS:="TCP"}
+: ${NFSV4_MINOR_VERSIONS:="0, 1, 2"}
 : ${SEC_TYPE:="sys"}
 : ${SQUASH_MODE:="No_Root_Squash"}
 : ${GRACELESS:=false}
 : ${GRACE_PERIOD:=90}
+: ${LEASE_LIFETIME:=60}
+: ${RECOVERY_BACKEND:="fs"}           # fs (state in /var/lib/nfs/ganesha, mount a volume to keep it) | none
 : ${ACCESS_TYPE:="RW"}
 : ${CLIENT_LIST:="10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"}
 : ${DISABLE_ACL:=false}
@@ -46,7 +58,35 @@ You can change the default behaviour using the following variables (with default
 : ${GANESHA_LOGFILE:="/dev/stdout"}
 : ${LOG_LEVEL:="INFO"}
 : ${LOG_COMPONENT:="ALL=INFO;"}
+: ${ENABLE_NLM:=false}                # true by default only if PROTOCOLS contains 3
+: ${ENABLE_RQUOTA:=false}
+: ${ALLOW_SET_IO_FLUSHER_FAIL:=false}
+: ${ENABLE_METRICS:=true}             # prometheus metrics on http://<host>:9587/metrics
+: ${MONITORING_PORT:=9587}
+
+# metadata cache (MDCACHE) limits
+: ${MDCACHE_ENTRIES_HWMARK:=50000}
+: ${MDCACHE_ENTRIES_RELEASE_SIZE:=100}
+: ${MDCACHE_CHUNKS_HWMARK:=1000}
+: ${MDCACHE_CHUNKS_LWMARK:=500}
+: ${MDCACHE_DIR_CHUNK:=128}
+: ${MDCACHE_LRU_RUN_INTERVAL:=90}
 ```
+
+# Upgrading from 3.x
+- `TRANSPORTS` default is now `TCP` (NFSv4 is TCP only; ganesha >= 14 does not listen for NFS on UDP).
+- The `RPC` log component no longer exists (replaced by `XPRT`); `CACHE_INODE*` are now `MDCACHE*`.
+- `Chunks_HWMark` upstream default went from 100000 to 1000 (V5.4): directory chunks no longer pin the cache.
+- NLM, rquota and `rpc.statd` are disabled when `PROTOCOLS` does not include 3.
+- A log component written twice (e.g. a default plus `LOG_COMPONENT=CLIENTID=DEBUG;`) is a fatal config
+  error since ganesha 6: the entrypoint now lets `LOG_COMPONENT` replace the defaults.
+- FSAL VFS ignores `tmpfs` exports since ganesha 15 (use a real filesystem for `EXPORT_PATH`).
+
+# Build args
+- `APP_VER`, `NTIRPC_VERSION`, `PROMETHEUS_CPP_LITE_COMMIT`: upstream versions (see Dockerfile).
+- `ALLOCATOR=jemalloc|libc|tcmalloc` (default `jemalloc`).
+- `ENABLE_ACL=OFF|ON` (default `OFF`, as in 3.4): with `ON` the server advertises NFSv4 ACLs and
+  `ls -l` issues one GETACL per file (about 10x slower on large directories), even with `DISABLE_ACL=true`.
 
 ### Create a `Dockerfile` in your project
 
@@ -59,20 +99,20 @@ Then, run the commands to build and run the Docker image:
 
 ```console
 $ docker build -t nfs-ganesha .
-$ docker run -dit --name nfs-ganesha -p 2049:2049 -p 111:111 nfs-ganesha
+$ docker run -dit --name nfs-ganesha --cap-add SYS_RESOURCE --cap-add DAC_READ_SEARCH -p 2049:2049 nfs-ganesha
 ```
 
 ### Without a `Dockerfile`
 
 If you don't want to include a `Dockerfile` in your project, it is sufficient to do the following:
 
-```$ docker run -dit --name my-nfs -p 2049:2049 -p 111:111 -v "/tmp/testvolme":/data izdock/nfs-ganesha```
+```$ docker run -dit --name my-nfs --cap-add SYS_RESOURCE --cap-add DAC_READ_SEARCH -p 2049:2049 -v "/tmp/testvolme":/data -e EXPORT_PATH=/data izdock/nfs-ganesha```
 
 ### Configuration
 
 To customize the configuration of nfs-ganesha, just change the default variables:
 
-```docker run -dit --name my-nfs -p 2049:2049 -p 111:111 -v "/tmp/testvolme":/data -e CLIENT_LIST="192.168.1.1, 192.168.1.23" -e LOG_LEVEL=DEBUG izdock/nfs-ganesha```
+```docker run -dit --name my-nfs --cap-add SYS_RESOURCE --cap-add DAC_READ_SEARCH -p 2049:2049 -v "/tmp/testvolme":/data -e EXPORT_PATH=/data -e CLIENT_LIST="192.168.1.1, 192.168.1.23" -e LOG_LEVEL=DEBUG izdock/nfs-ganesha```
 
 # Quick reference
 
