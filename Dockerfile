@@ -21,8 +21,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG APP_VER
 # allocator: jemalloc (default upstream) | libc | tcmalloc
 ARG ALLOCATOR=jemalloc
-# NFSv4 ACLs on FSAL VFS: OFF as in 3.4. With ON the server advertises ACLs and "ls -l"
-# issues one GETACL per file (20000 files: 3.2s instead of 0.3s), even with Disable_ACL=true
+# ACLs (NFSv4 ACLs on FSAL VFS and the NFSACL protocol of NFSv3): OFF as in 3.4. With ON
+# "ls -l" issues one ACL request per file, even with Disable_ACL=true
+# (20000 files: NFSv4 3.2s instead of 0.3s, NFSv3 2.5s instead of 0.6s)
 ARG ENABLE_ACL=OFF
 
 COPY versions.env /usr/src/izdock/versions.env

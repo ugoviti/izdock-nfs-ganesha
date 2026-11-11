@@ -68,6 +68,10 @@ You can change the default behaviour using the following variables (with default
 : ${LOG_COMPONENT:="ALL=INFO;"}
 : ${ENABLE_NLM:=false}                # true by default only if PROTOCOLS contains 3
 : ${ENABLE_RQUOTA:=false}
+: ${STATD_PORT:=662}                  # rpc.statd (NFSv3 locks) on fixed ports, to expose them with a Service
+: ${STATD_OUTGOING_PORT:=2020}
+: ${IDMAPPING_ACTIVE:=false}          # AUTH_SYS with numeric owners: no name lookups (true with sec=krb5)
+: ${MALLOC_CONF:="background_thread:true"}   # jemalloc: give freed memory back to the OS also when idle
 : ${ALLOW_SET_IO_FLUSHER_FAIL:=false}
 : ${ENABLE_METRICS:=true}             # prometheus metrics on http://<host>:9587/metrics
 : ${MONITORING_PORT:=9587}
@@ -80,6 +84,22 @@ You can change the default behaviour using the following variables (with default
 : ${MDCACHE_DIR_CHUNK:=128}
 : ${MDCACHE_LRU_RUN_INTERVAL:=90}
 ```
+
+# NFSv3
+NFSv4 (4.0, 4.1, 4.2) is the default. To serve NFSv3 too set `PROTOCOLS="3, 4"`: rpc.statd and NLM
+(NFSv3 locks) are started, every service on a fixed port so that it can be published by a Service:
+
+| Service | Port |
+|---|---|
+| rpcbind (portmapper) | 111 |
+| nfs (v3 and v4) | 2049 |
+| mountd | 20048 |
+| nlockmgr (NLM) | 32803 |
+| status (rpc.statd) | 662 |
+| prometheus metrics | 9587 |
+
+rpcbind always runs, also with NFSv4 only: without it ganesha logs `Cannot register NFS V4` at
+startup and `rpcinfo` (eg. a liveness probe `rpcinfo -n 2049 -t 127.0.0.1 100003 4`) does not work.
 
 # Upgrading from 3.x
 - `TRANSPORTS` default is now `TCP` (NFSv4 is TCP only; ganesha >= 14 does not listen for NFS on UDP).
@@ -112,8 +132,9 @@ version add `GANESHA_PIN=<version>` next to `GANESHA_VER` in versions.env and ru
 
 Build args (`docker build --build-arg`, or after `tools/build.sh`):
 - `ALLOCATOR=jemalloc|libc|tcmalloc` (default `jemalloc`).
-- `ENABLE_ACL=OFF|ON` (default `OFF`, as in 3.4): with `ON` the server advertises NFSv4 ACLs and
-  `ls -l` issues one GETACL per file (about 10x slower on large directories), even with `DISABLE_ACL=true`.
+- `ENABLE_ACL=OFF|ON` (default `OFF`, as in 3.4): NFSv4 ACLs and the NFSACL protocol of NFSv3. With
+  `ON` `ls -l` issues one ACL request per file, even with `DISABLE_ACL=true`: about 10x slower on large
+  directories with NFSv4, about 5x with NFSv3.
 
 ### Create a `Dockerfile` in your project
 

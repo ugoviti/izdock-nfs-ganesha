@@ -34,6 +34,20 @@ case "${PROTOCOLS}" in
   *)   : ${ENABLE_NLM:=false} ;;
 esac
 : ${ENABLE_RQUOTA:=false}
+# rpc.statd (stato dei lock NFSv3) su porte fisse, come le espone il Service:
+# con una porta casuale il recupero dei lock dietro un ClusterIP non funziona
+: ${STATD_PORT:=662}
+: ${STATD_OUTGOING_PORT:=2020}
+
+# traduzione nomi <-> uid/gid (idmapping). Con AUTH_SYS e Only_Numeric_Owners i client
+# usano gli id numerici: false evita le ricerche nsswitch per ogni owner
+# ("ls -l" di 20000 file: 0.45s invece di 0.58s, owner identici). true con sec=krb5
+: ${IDMAPPING_ACTIVE:=false}
+
+# jemalloc: un thread in background restituisce al sistema la memoria liberata anche
+# quando il server e' fermo (di default lo fa solo durante nuove allocazioni)
+: ${MALLOC_CONF:="background_thread:true"}
+export MALLOC_CONF
 
 # PR_SET_IO_FLUSHER evita il deadlock con client NFS sullo stesso nodo sotto pressione di memoria.
 # Richiede CAP_SYS_RESOURCE: con false ganesha non parte se manca (meglio di perdere la protezione in silenzio)
@@ -84,7 +98,7 @@ init_rpc() {
     rpcbind || return 0
     # rpc.statd serve solo ai lock NFSv3 (NLM)
     if [ "${ENABLE_NLM}" = "true" ]; then
-        rpc.statd -L || return 0
+        rpc.statd -L -p "${STATD_PORT}" -o "${STATD_OUTGOING_PORT}" || return 0
     fi
 
     # not needed with ganesha
@@ -209,6 +223,10 @@ NFSV4 {
     Only_Numeric_Owners = true;
 }
 
+DIRECTORY_SERVICES {
+    Idmapping_Active = ${IDMAPPING_ACTIVE};
+}
+
 MDCACHE {
     Entries_HWMark = ${MDCACHE_ENTRIES_HWMARK};
     Entries_Release_Size = ${MDCACHE_ENTRIES_RELEASE_SIZE};
@@ -251,6 +269,7 @@ EXPORT {
     CLIENT {
       Clients = ${CLIENT_LIST};
       Access_Type = ${ACCESS_TYPE};
+      Protocols = ${PROTOCOLS};
     }
 
     Filesystem_id = 1.1;

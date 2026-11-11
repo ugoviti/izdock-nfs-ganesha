@@ -3,7 +3,7 @@
 # (versions and sha256 from versions.env only), compiles and installs into DESTDIR (/out).
 #   APP_VER (build arg, optional)  expected nfs-ganesha version: the build fails if versions.env differs
 #   ALLOCATOR                      jemalloc | libc | tcmalloc
-#   ENABLE_ACL                     OFF | ON (NFSv4 ACLs on FSAL VFS)
+#   ENABLE_ACL                     OFF | ON (NFSv4 ACLs on FSAL VFS and the NFSACL side protocol of NFSv3)
 set -Eeuo pipefail
 
 src=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -39,6 +39,10 @@ rm -rf "$tmp"
 
 echo "---------- cmake (FSAL VFS only, allocator $ALLOCATOR, ACL $ENABLE_ACL)"
 # process metrics (procps) are not available: ganesha looks for libprocps, missing in trixie
+# upstream bug (V15.11): src/os/linux/acl.c is always built, but libacl is linked only when
+# ENABLE_VFS_POSIX_ACL or USE_NFSACL3 is on; with both off link libacl explicitly
+acl_link=''
+[ "$ENABLE_ACL" == ON ] || acl_link='-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--no-as-needed,-lacl'
 mkdir -p "$tree/build"
 cd "$tree/build"
 cmake -DCMAKE_BUILD_TYPE=Release -Wno-dev \
@@ -67,6 +71,8 @@ cmake -DCMAKE_BUILD_TYPE=Release -Wno-dev \
   -DALLOCATOR="$ALLOCATOR" \
   -DENABLE_VFS_POSIX_ACL="$ENABLE_ACL" \
   -DENABLE_RFC_ACL="$ENABLE_ACL" \
+  -DUSE_NFSACL3="$ENABLE_ACL" \
+  $acl_link \
   ../src/
 
 echo "---------- make"
