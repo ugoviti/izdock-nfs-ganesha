@@ -57,9 +57,19 @@ export MALLOC_CONF
 : ${ENABLE_METRICS:=true}
 : ${MONITORING_PORT:=9587}
 
+# prestazioni (verificate nel codice V15.11, vedi README)
+: ${READDIR_RES_SIZE:=1048576}          # byte massimi di una risposta READDIR NFSv4. Default upstream 32 KiB:
+                                        # walk di 50000 file 2.3s invece di 1.4s; 1 MiB = quanto chiede il client (come la 3.4)
+: ${ENABLE_DYNAMIC_METRICS:=false}      # metriche per client/export: un mutex e allocazioni per ogni READ/WRITE/LOOKUP;
+                                        # le metriche del server (rpcs_*, threads, compound) restano
+: ${RPC_IOQ_THRDMIN:=2}                 # thread di servizio inattivi tenuti pronti
+: ${RPC_IOQ_THRDMAX:=200}               # thread di servizio massimi (= richieste in esecuzione insieme)
+: ${ATTR_EXPIRATION_TIME:=60}           # secondi di validita' degli attributi in cache (-1 = finche' ganesha non li cambia)
+: ${TRUST_READDIR_NEGATIVE_CACHE:=false} # LOOKUP di file inesistenti risolte dalla cache delle directory
+
 # limiti della cache metadati (MDCACHE). Entries_HWMark e' una soglia "morbida":
 # le entry referenziate (file aperti, chunk di directory) possono superarla.
-: ${MDCACHE_ENTRIES_HWMARK:=50000}
+: ${MDCACHE_ENTRIES_HWMARK:=100000}
 : ${MDCACHE_ENTRIES_RELEASE_SIZE:=100}
 : ${MDCACHE_CHUNKS_HWMARK:=1000}
 : ${MDCACHE_CHUNKS_LWMARK:=500}
@@ -210,7 +220,11 @@ NFS_Core_Param
     Enable_RQUOTA = ${ENABLE_RQUOTA};
     Allow_Set_Io_Flusher_Fail = ${ALLOW_SET_IO_FLUSHER_FAIL};
     Enable_Metrics = ${ENABLE_METRICS};
+    Enable_Dynamic_Metrics = ${ENABLE_DYNAMIC_METRICS};
     Monitoring_Port = ${MONITORING_PORT};
+    Readdir_Res_Size = ${READDIR_RES_SIZE};
+    RPC_Ioq_ThrdMin = ${RPC_IOQ_THRDMIN};
+    RPC_Ioq_ThrdMax = ${RPC_IOQ_THRDMAX};
 }
 
 NFSV4 {
@@ -260,8 +274,9 @@ EXPORT {
     # changed to false, otherwise normal users can't access directories where gid=0
     Manage_Gids = false;
 
-    #to test disable getattr cache
-    #Attr_Expiration_Time = 0;
+    # validita' degli attributi in cache e cache negativa delle LOOKUP
+    Attr_Expiration_Time = ${ATTR_EXPIRATION_TIME};
+    Trust_Readdir_Negative_Cache = ${TRUST_READDIR_NEGATIVE_CACHE};
 
     Anonymous_uid = $(id -u $ANON_USER);
     Anonymous_gid = $(awk -F: '/^'$ANON_GROUP':/ { print $3 }' /etc/group);

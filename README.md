@@ -76,8 +76,16 @@ You can change the default behaviour using the following variables (with default
 : ${ENABLE_METRICS:=true}             # prometheus metrics on http://<host>:9587/metrics
 : ${MONITORING_PORT:=9587}
 
+# performance (measured, see "Performance tuning")
+: ${READDIR_RES_SIZE:=1048576}         # max bytes of an NFSv4 READDIR reply (upstream default 32768)
+: ${ENABLE_DYNAMIC_METRICS:=false}     # per client/export metrics: a mutex on every READ/WRITE/LOOKUP
+: ${RPC_IOQ_THRDMIN:=2}
+: ${RPC_IOQ_THRDMAX:=200}              # service threads = requests executed at the same time
+: ${ATTR_EXPIRATION_TIME:=60}
+: ${TRUST_READDIR_NEGATIVE_CACHE:=false}
+
 # metadata cache (MDCACHE) limits
-: ${MDCACHE_ENTRIES_HWMARK:=50000}
+: ${MDCACHE_ENTRIES_HWMARK:=100000}
 : ${MDCACHE_ENTRIES_RELEASE_SIZE:=100}
 : ${MDCACHE_CHUNKS_HWMARK:=1000}
 : ${MDCACHE_CHUNKS_LWMARK:=500}
@@ -100,6 +108,19 @@ NFSv4 (4.0, 4.1, 4.2) is the default. To serve NFSv3 too set `PROTOCOLS="3, 4"`:
 
 rpcbind always runs, also with NFSv4 only: without it ganesha logs `Cannot register NFS V4` at
 startup and `rpcinfo` (eg. a liveness probe `rpcinfo -n 2049 -t 127.0.0.1 100003 4`) does not work.
+
+# Performance tuning
+Measured with a Linux NFSv4.1 client against 50000 small files and a 20000 entries directory:
+- `READDIR_RES_SIZE=1048576`: with the upstream default (32 KiB) a walk of 50000 files takes 2.3s instead
+  of 1.4s and `ls -l` of 20000 files 0.8s instead of 0.5s. 1 MiB is what the Linux client asks for (and what
+  3.4 used).
+- `MDCACHE_ENTRIES_HWMARK=100000` (upstream default): a second walk of 80000 files is 8-12% faster than
+  with 50000, for about 60 MiB more memory.
+- `ENABLE_DYNAMIC_METRICS=false`: no measurable difference with one client, but it removes a mutex and
+  some allocations from every READ/WRITE/LOOKUP; the server metrics are still exported.
+- No measurable effect: `RPC_IOQ_THRDMIN`, `TRUST_READDIR_NEGATIVE_CACHE`, `ATTR_EXPIRATION_TIME`. The last
+  two are safe only if nothing changes the exported filesystem outside ganesha: left at their defaults.
+- Not available on FSAL VFS: delegations, asynchronous writes (COMMIT always runs fsync, which is correct).
 
 # Upgrading from 3.x
 - `TRANSPORTS` default is now `TCP` (NFSv4 is TCP only; ganesha >= 14 does not listen for NFS on UDP).
