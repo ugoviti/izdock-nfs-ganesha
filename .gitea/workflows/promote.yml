@@ -4,7 +4,10 @@
 # Use it to publish again an image that is already in the Gitea registry (eg. a build run
 # with dockerhub unchecked, or to move the tags back to an older build), without rebuilding
 # (same digest that was verified). Tag scheme: .gitea/actions/image-tags
-#   source 15.11-57 -> 15.11, 15, 15.11-57 [, latest]
+#   source latest (default) or 15.11-57 -> 15.11, 15, 15.11-57 [, latest]
+# The source can be any tag of the Gitea registry (latest, 15.11, 15.11-57): version and
+# build number are read from the image itself (APP_VER, APP_VER_BUILD set by the build),
+# and the copy is made by digest, so the tags always match what was built and verified.
 #
 # Required secrets:   REGISTRY_HOST (or variable), REGISTRY_USERNAME, REGISTRY_TOKEN, DOCKER_USERNAME,
 #                     DOCKER_PASSWORD, MATRIX_PASSWORD
@@ -16,8 +19,9 @@ on:
   workflow_dispatch:
     inputs:
       source:
-        description: Tag to publish, as in the Gitea registry (eg. 15.11-57 or 15.11)
+        description: Tag to publish, as in the Gitea registry (latest = the last build, or eg. 15.11-57)
         required: true
+        default: latest
       latest:
         description: Also move the "latest" Docker tag
         type: boolean
@@ -37,20 +41,6 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: parse source tag
-        id: src
-        env:
-          SOURCE: ${{ inputs.source }}
-        run: |
-          set -eu
-          if [[ "$SOURCE" =~ ^([0-9]+\.[0-9]+(\.[0-9]+)?)(-([0-9]+))?$ ]]; then
-            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-            echo "build=${BASH_REMATCH[4]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::source must be X.Y[.Z] or X.Y[.Z]-<build> (got '$SOURCE')"
-            exit 1
-          fi
-
       - name: registry login
         id: login
         uses: ./.gitea/actions/registry-login
@@ -61,10 +51,35 @@ jobs:
           dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
           dockerhub-password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # version and build number from the image (APP_VER, APP_VER_BUILD), digest of the tag
+      - name: resolve source
+        id: src
+        env:
+          SRC: ${{ steps.login.outputs.image }}:${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          digest=$(docker buildx imagetools inspect "$SRC" --format '{{json .Manifest}}' | jq -r '.digest // empty')
+          [ -n "$digest" ] || { echo "::error::tag ${SRC##*:} not found in the Gitea registry"; exit 1; }
+          # one image: .Image is its config; an index: a map platform -> config
+          envs=$(docker buildx imagetools inspect "$SRC" --format '{{json .Image}}' |
+                 jq -r 'if has("config") then .config.Env else (.["linux/amd64"] // first(.[])).config.Env end | .[]')
+          version=$(sed -n 's/^APP_VER=//p' <<< "$envs")
+          build=$(sed -n 's/^APP_VER_BUILD=//p' <<< "$envs")
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::APP_VER of ${SRC##*:} is '$version': not an image of nfs-ganesha-build"; exit 1
+          fi
+          [[ "$build" =~ ^[0-9]+$ ]] || build=''
+          echo "${SRC##*:} = ${version}${build:+-$build} ($digest)"
+          {
+            echo "version=$version"
+            echo "build=$build"
+            echo "ref=${SRC%:*}@$digest"
+          } >> "$GITHUB_OUTPUT"
+
       - name: promote to docker hub
         uses: ./.gitea/actions/promote
         with:
-          source: ${{ steps.login.outputs.image }}:${{ inputs.source }}
+          source: ${{ steps.src.outputs.ref }}
           version: ${{ steps.src.outputs.version }}
           latest: ${{ inputs.latest }}
           build-number: ${{ steps.src.outputs.build }}
@@ -75,7 +90,7 @@ jobs:
         uses: ./.gitea/actions/matrix-notify
         with:
           status: ${{ job.status }}
-          label: publish ${{ inputs.source }} latest:${{ inputs.latest }}
+          label: publish ${{ inputs.source }} (${{ steps.src.outputs.version }}${{ steps.src.outputs.build && format('-{0}', steps.src.outputs.build) || '' }}) latest:${{ inputs.latest }}
           password: ${{ secrets.MATRIX_PASSWORD }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
