@@ -1,0 +1,34 @@
+# Lint (Gitea Actions): shellcheck and hadolint, the pinned versions of tools/lint.sh.
+# On every push and pull request: a finding fails the job.
+#
+# Failure notify: MATRIX_PASSWORD (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER (variables)
+
+name: lint
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: shellcheck and hadolint
+        shell: bash
+        run: tools/lint.sh
+
+      - name: matrix notify
+        if: failure()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: lint ref:${{ gitea.ref_name }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}

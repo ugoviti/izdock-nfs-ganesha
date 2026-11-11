@@ -2,17 +2,25 @@
 NFS-Ganesha is a user-mode file server for NFS (v3, 4.0, 4.1, 4.1 pNFS, 4.2)
 
 # Supported tags
--	`15.X-BUILD`, `15.X`, `15`, `latest`
--	`3.4-BUILD`, `3.4` (old, Debian buster)
+| Tags | nfs-ganesha | Base |
+|---|---|---|
+| `15.X-BUILD`, `15.X`, `15`, `latest` | 15.X | Debian 13 (trixie) slim |
+| `3.4-BUILD`, `3.4` (old, unmaintained) | 3.4 | Debian 10 (buster) slim |
 
-Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/nfs-ganesha/tags/) page to discover the latest versions)
+**X** is the nfs-ganesha minor version, **BUILD** the build number: see the
+[tags page](https://hub.docker.com/r/izdock/nfs-ganesha/tags) for the latest ones.
+Images are rebuilt every week with the latest OS security updates, so the `15.X`, `15` and `latest`
+tags always point to a patched image; `15.X-BUILD` never changes.
+
+Architecture: `amd64`.
 
 # Dockerfile
-- https://github.com/ugoviti/izdock-nfs-ganesha/blob/master/Dockerfile
+- https://github.com/ugoviti/izdock-nfs-ganesha/blob/main/Dockerfile
 
 # Features
 - Small image footprint based on [Debian 13 (trixie) Slim](https://hub.docker.com/_/debian/), multi-stage build
 - NFS Ganesha binaries are compiled from the upstream official repository (FSAL VFS only, jemalloc allocator)
+- Every downloaded source (nfs-ganesha, ntirpc, prometheus-cpp-lite) is pinned and verified by sha256 at build time
 - Upstream uses a rolling release model since V8.0: every non-prerelease `Vx.y` tag is a stable release
 - Using [tini](https://github.com/krallin/tini) as init process
 - Many customizable variables to use
@@ -82,8 +90,27 @@ You can change the default behaviour using the following variables (with default
   error since ganesha 6: the entrypoint now lets `LOG_COMPONENT` replace the defaults.
 - FSAL VFS ignores `tmpfs` exports since ganesha 15 (use a real filesystem for `EXPORT_PATH`).
 
-# Build args
-- `APP_VER`, `NTIRPC_VERSION`, `PROMETHEUS_CPP_LITE_COMMIT`: upstream versions (see Dockerfile).
+# Build
+Every component version and its sha256 is in
+[versions.env](https://github.com/ugoviti/izdock-nfs-ganesha/blob/main/versions.env), the single source
+of truth of the build: nfs-ganesha, the ntirpc and prometheus-cpp-lite of its git submodules, the
+Debian base image pinned by digest.
+```
+git clone https://github.com/ugoviti/izdock-nfs-ganesha.git && cd izdock-nfs-ganesha
+tools/build.sh          # -> izdock/nfs-ganesha:local
+```
+
+Check upstream for new versions and update versions.env (versions and sha256):
+```
+tools/make-updates.sh           # report only
+tools/make-updates.sh --apply   # update versions.env, then build and test
+```
+nfs-ganesha stays on its major version: a new major is only reported. ntirpc and prometheus-cpp-lite
+always follow the submodules of the chosen nfs-ganesha release. To keep nfs-ganesha on a given
+version add `GANESHA_PIN=<version>` next to `GANESHA_VER` in versions.env and run
+`tools/make-updates.sh --apply`.
+
+Build args (`docker build --build-arg`, or after `tools/build.sh`):
 - `ALLOCATOR=jemalloc|libc|tcmalloc` (default `jemalloc`).
 - `ENABLE_ACL=OFF|ON` (default `OFF`, as in 3.4): with `ON` the server advertises NFSv4 ACLs and
   `ls -l` issues one GETACL per file (about 10x slower on large directories), even with `DISABLE_ACL=true`.

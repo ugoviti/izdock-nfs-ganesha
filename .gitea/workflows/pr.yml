@@ -1,0 +1,45 @@
+# izdock/nfs-ganesha pull request checks (Gitea Actions)
+# On every pull request (eg. the weekly auto/updates one): build the image with the
+# versions.env of the pull request and verify it (checks and smoke test), without publishing
+# anything (the image is only loaded in the runner; the registry build cache is read, never written).
+#
+# Required secrets: REGISTRY_HOST (or variable), REGISTRY_USERNAME, REGISTRY_TOKEN (build cache)
+# Failure notify:   MATRIX_PASSWORD (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER (variables)
+
+name: nfs-ganesha-pr
+
+on:
+  pull_request:
+
+concurrency:
+  group: nfs-ganesha-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    name: nfs-ganesha
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build and verify
+        id: build
+        uses: ./.gitea/actions/build-push
+        with:
+          push: 'false'
+          build-number: pr${{ github.event.pull_request.number }}
+          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: matrix notify
+        if: failure()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: PR #${{ github.event.pull_request.number }} nfs-ganesha ${{ steps.build.outputs.version || '?' }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}

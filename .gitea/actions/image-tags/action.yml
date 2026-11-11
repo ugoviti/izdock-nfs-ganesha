@@ -1,0 +1,42 @@
+name: image tags
+description: Single source of truth for the image tag scheme (tags.sh), shared by build and promote
+
+# 15.11        -> 15.11, 15 [, 15.11-<build-number>] [, latest]
+# 15.11.1      -> 15.11.1, 15.11, 15 [, 15.11.1-<build-number>] [, latest]
+# 15.11-rc1    -> 15.11-rc1 [, 15.11-rc1-<build-number>]  (prerelease: never X.Y, X, latest)
+
+inputs:
+  images:
+    description: Image name(s), newline separated
+    required: true
+  version:
+    description: Version to tag (eg. 15.11)
+    required: true
+  latest:
+    description: "'true' or 'false' (only applied to stable X.Y or X.Y.Z versions)"
+    default: 'false'
+  build-number:
+    description: Optional build number, adds the <version>-<build-number> tag
+    default: ''
+
+outputs:
+  tags:
+    description: Full image references, newline separated
+    value: ${{ steps.tags.outputs.tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: compute tags
+      id: tags
+      shell: bash
+      env:
+        IMAGES: ${{ inputs.images }}
+        VERSION: ${{ inputs.version }}
+        LATEST: ${{ inputs.latest }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+      run: |
+        set -euo pipefail
+        tags=$("$GITHUB_ACTION_PATH/tags.sh")
+        printf '%s\n' "$tags"
+        { echo "tags<<IMAGE_TAGS"; printf '%s\n' "$tags"; echo "IMAGE_TAGS"; } >> "$GITHUB_OUTPUT"

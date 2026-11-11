@@ -1,0 +1,49 @@
+name: promote to docker hub
+description: Copy an image already built and verified in the private registry to Docker Hub, without rebuilding (same digest). Needs the logins of .gitea/actions/registry-login (private registry + Docker Hub).
+
+inputs:
+  source:
+    description: Full private image reference to copy (eg. <host>/initzero/nfs-ganesha:15.11-57)
+    required: true
+  version:
+    description: Version for the Docker Hub tags (see .gitea/actions/image-tags)
+    required: true
+  latest:
+    description: "'true' or 'false': also move latest"
+    default: 'false'
+  build-number:
+    description: Optional build number, adds the <version>-<build-number> tag
+    default: ''
+  dockerhub-image:
+    default: izdock/nfs-ganesha
+
+outputs:
+  tags:
+    description: Docker Hub tags written, newline separated
+    value: ${{ steps.tags.outputs.tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: image tags
+      id: tags
+      uses: ./.gitea/actions/image-tags
+      with:
+        images: ${{ inputs.dockerhub-image }}
+        version: ${{ inputs.version }}
+        latest: ${{ inputs.latest }}
+        build-number: ${{ inputs.build-number }}
+
+    - name: copy image to docker hub
+      shell: bash
+      env:
+        SRC: ${{ inputs.source }}
+        TAGS: ${{ steps.tags.outputs.tags }}
+      run: |
+        set -euo pipefail
+        docker buildx imagetools inspect "$SRC" >/dev/null
+        ARGS=()
+        while read -r TAG; do
+          if [ -n "$TAG" ]; then ARGS+=(-t "$TAG"); echo "-> $TAG"; fi
+        done <<< "$TAGS"
+        docker buildx imagetools create "${ARGS[@]}" "$SRC"

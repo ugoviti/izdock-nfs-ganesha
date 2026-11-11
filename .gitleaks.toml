@@ -1,0 +1,10 @@
+# gitleaks settings of the repository: the default rules, minus the false positives below.
+# Used as-is when the private rules (secret GITLEAKS_CONFIG) are not set; the private rules
+# extend this file with:  [extend] path = ".gitleaks.toml"
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "versions.env checksums (eg. METRO_API_SHA256=<sha256>): hashes of public files, not secrets"
+regexTarget = "line"
+regexes = ['''\b[A-Z][A-Z0-9_]*_(SHA256|DIGEST)=(sha256:)?[0-9a-f]{64}\b''']

@@ -1,0 +1,88 @@
+# izdock/nfs-ganesha weekly component updates (Gitea Actions)
+# Every Sunday (before the Monday rebuild) and by hand (Repository > Actions > nfs-ganesha-updates):
+#   1. tools/make-updates.sh --apply: new nfs-ganesha release (and the ntirpc and prometheus-cpp-lite
+#      of its submodules), sha256 and base image digest in versions.env
+#      (same major only; components with <NAME>_PIN are kept)
+#   2. when versions.env changed: commit on the auto/updates branch (recreated from main, force
+#      pushed) and open its pull request, or refresh the one already open
+#   3. nfs-ganesha-pr builds and verifies the image on the pull request; merging it releases
+#      (nfs-ganesha-build on main). Closing it skips those versions until the next run.
+#
+# Required secrets:   MATRIX_PASSWORD
+# Optional secrets:   UPDATES_TOKEN  Gitea token (bot or user), scope repository: Read and Write, used to
+#                                    push the branch and open the PR; without it the automatic token of
+#                                    the job is used, and its pull requests may not start nfs-ganesha-pr
+#                     GH_PUSH_TOKEN  also used for the GitHub API lookups (higher rate limit)
+# Required variables: MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER
+
+name: nfs-ganesha-updates
+
+on:
+  schedule:
+    # every Sunday at 04:30 UTC
+    - cron: '30 4 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: nfs-ganesha-updates
+  cancel-in-progress: false
+
+env:
+  UPDATES_BRANCH: auto/updates
+  BASE_BRANCH: main
+
+jobs:
+  updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          token: ${{ secrets.UPDATES_TOKEN || gitea.token }}
+
+      - name: check and apply updates
+        id: check
+        shell: bash
+        env:
+          GITHUB_API_TOKEN: ${{ secrets.GH_PUSH_TOKEN }}
+        run: |
+          set -uo pipefail
+          rc=0
+          tools/make-updates.sh --apply > "$RUNNER_TEMP/report.txt" 2>&1 || rc=$?
+          cat "$RUNNER_TEMP/report.txt"
+          # 0 current or applied, 2 applied but some lookups unavailable, else error
+          case "$rc" in
+            0) ;;
+            2) echo "::warning::some upstream lookups were unavailable: the report is incomplete" ;;
+            *) echo "::error::tools/make-updates.sh failed (exit $rc)"; exit 1 ;;
+          esac
+          if git diff --quiet -- versions.env; then changed=false; else changed=true; fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          { echo "report<<UPDATES_REPORT"; sed -n '/^COMPONENT/,/^$/p' "$RUNNER_TEMP/report.txt"; echo "UPDATES_REPORT"; } >> "$GITHUB_OUTPUT"
+          git diff --stat -- versions.env
+
+      - name: pull request
+        id: pr
+        if: steps.check.outputs.changed == 'true'
+        shell: bash
+        env:
+          GITEA_SERVER: ${{ gitea.server_url }}
+          REPO: ${{ gitea.repository }}
+          TOKEN: ${{ secrets.UPDATES_TOKEN || gitea.token }}
+          BRANCH: ${{ env.UPDATES_BRANCH }}
+          BASE: ${{ env.BASE_BRANCH }}
+        run: |
+          REPORT="$RUNNER_TEMP/report.txt" .gitea/scripts/update-pr.sh
+
+      - name: matrix notify
+        if: failure() || steps.check.outputs.changed == 'true'
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: "updates ${{ steps.pr.outputs.number && format('PR #{0}', steps.pr.outputs.number) || '' }}"
+          details: ${{ steps.check.outputs.report }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}

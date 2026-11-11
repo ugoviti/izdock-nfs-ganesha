@@ -1,0 +1,121 @@
+name: nfs-ganesha build & push
+description: Build the image from versions.env, push it to the private registry (or only load it locally) and verify it (Docker Hub is reached only through .gitea/actions/promote)
+
+inputs:
+  latest:
+    description: "'true' or 'false': also tag latest"
+    default: 'false'
+  build-number:
+    description: Build number tag suffix (<version>-<build-number>)
+    default: ''
+  build-args:
+    description: Extra newline separated build args (KEY=value)
+    default: ''
+  push:
+    description: "'true': push to the private registry and update the build cache; 'false': only load the image locally (pull request checks), the cache is read only"
+    default: 'true'
+  platforms:
+    default: linux/amd64
+  registry-host:
+    description: Private registry host (secrets.REGISTRY_HOST)
+    required: true
+  registry-repository:
+    default: initzero/nfs-ganesha
+  registry-username:
+    required: true
+  registry-token:
+    required: true
+
+outputs:
+  version:
+    description: nfs-ganesha version (versions.env)
+    value: ${{ steps.ver.outputs.version }}
+  image:
+    description: Private image path (host/repository)
+    value: ${{ steps.login.outputs.image }}
+  source-tag:
+    description: "The most specific tag pushed (<version>-<build-number>, or <version>), the source for promote"
+    value: ${{ steps.ver.outputs.source_tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: resolve versions
+      id: ver
+      shell: bash
+      env:
+        BUILD_NUMBER: ${{ inputs.build-number }}
+      run: |
+        set -euo pipefail
+        . build/lib.sh
+        load_versions versions.env
+        from=$(base_image)
+        {
+          echo "version=$GANESHA_VER"
+          echo "ntirpc=$NTIRPC_VER"
+          echo "image_from=$from"
+          echo "source_tag=${GANESHA_VER}${BUILD_NUMBER:+-$BUILD_NUMBER}"
+          echo "app_build_commit=${GITHUB_SHA::7}"
+          echo "app_build_date=$(date +%s)"
+          # ISO week: the cached OS upgrade layer is rebuilt at least once a week
+          echo "os_update_stamp=$(date -u +%G-W%V)"
+        } >> "$GITHUB_OUTPUT"
+        echo "nfs-ganesha ${GANESHA_VER} (ntirpc ${NTIRPC_VER}) from ${from}"
+
+    - name: registry login
+      id: login
+      uses: ./.gitea/actions/registry-login
+      with:
+        registry-host: ${{ inputs.registry-host }}
+        registry-repository: ${{ inputs.registry-repository }}
+        registry-username: ${{ inputs.registry-username }}
+        registry-token: ${{ inputs.registry-token }}
+
+    - name: image tags
+      id: tags
+      uses: ./.gitea/actions/image-tags
+      with:
+        images: ${{ steps.login.outputs.image }}
+        version: ${{ steps.ver.outputs.version }}
+        latest: ${{ inputs.latest }}
+        build-number: ${{ inputs.build-number }}
+
+    - name: build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: Dockerfile
+        platforms: ${{ inputs.platforms }}
+        push: ${{ inputs.push == 'true' }}
+        load: ${{ inputs.push != 'true' }}
+        # no provenance attestation: it would embed the private build source URL in the image
+        provenance: false
+        tags: ${{ steps.tags.outputs.tags }}
+        build-args: |
+          IMAGE_FROM=${{ steps.ver.outputs.image_from }}
+          APP_VER=${{ steps.ver.outputs.version }}
+          NTIRPC_VER=${{ steps.ver.outputs.ntirpc }}
+          APP_VER_BUILD=${{ inputs.build-number }}
+          APP_BUILD_COMMIT=${{ steps.ver.outputs.app_build_commit }}
+          APP_BUILD_DATE=${{ steps.ver.outputs.app_build_date }}
+          OS_UPDATE_STAMP=${{ steps.ver.outputs.os_update_stamp }}
+          ${{ inputs.build-args }}
+        # build cache in the Gitea registry (replaces the Drone volume cache)
+        cache-from: type=registry,ref=${{ steps.login.outputs.image }}:buildcache
+        cache-to: ${{ inputs.push == 'true' && format('type=registry,ref={0}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true', steps.login.outputs.image) || '' }}
+
+    # post-build checks: with push:true the image is not in the local docker daemon,
+    # so pull it back; with push:false it was loaded
+    #   verify-image.sh  runs inside the image (versions, libraries, generated configuration)
+    #   smoke-test.sh    starts the server as the production StatefulSet does
+    - name: verify image
+      shell: bash
+      env:
+        IMAGE: ${{ steps.login.outputs.image }}:${{ steps.ver.outputs.source_tag }}
+        ACTION_PATH: ${{ github.action_path }}
+        PUSH: ${{ inputs.push }}
+      run: |
+        set -euo pipefail
+        [ "$PUSH" != true ] || docker pull -q "$IMAGE"
+        docker run -i --rm --entrypoint "" "$IMAGE" bash -s < "$ACTION_PATH/verify-image.sh"
+        "$ACTION_PATH/smoke-test.sh"

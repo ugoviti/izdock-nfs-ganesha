@@ -54,7 +54,7 @@ esac
 
 # nfs config requirements
 : ${IDMAP_DOMAIN:="$(hostname -d)"}
-[ -z "${IDMAP_DOMAIN}" ] && IDMAP_DOMAIN="$HOSTNAME"
+[ -z "${IDMAP_DOMAIN}" ] && IDMAP_DOMAIN="$(hostname)"
 
 echo "=> Configuring NFS Ganesha Server..."
 

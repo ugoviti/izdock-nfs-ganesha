@@ -1,0 +1,7 @@
+# build context: Dockerfile, versions.env, build/, filesystem/, README.md
+.git
+.gitea
+.githooks
+tools
+*.md
+!README.md

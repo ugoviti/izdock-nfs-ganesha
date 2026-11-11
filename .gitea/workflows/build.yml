@@ -1,0 +1,141 @@
+# izdock/nfs-ganesha build and publish (Gitea Actions, replaces .drone.yml)
+# On every push to main, every Monday (weekly rebuild: OS security updates of the
+# apt upgrade layer, OS_UPDATE_STAMP=<ISO week>) and by hand (Repository > Actions > nfs-ganesha-build).
+# Versions from versions.env (single source of truth):
+#   1. build and push to the Gitea registry, then verify the image (.gitea/actions/build-push):
+#      checks inside the image and a smoke test that starts the server with the production env
+#   2. only if the verify passes: copy the same digest to Docker Hub (.gitea/actions/promote)
+#   3. only if it was published on Docker Hub: gitleaks scan of the full history
+#      (private rules), then push the built commit to GitHub main (fast-forward only).
+#      GitHub is never pushed by hand: it gets only the commits of a release that passed.
+# Tags (.gitea/actions/image-tags): X.Y, X, X.Y-<run_number>, latest (eg. 15.11, 15, 15.11-57, latest)
+# To publish again an image already in the Gitea registry: nfs-ganesha-promote (manual).
+#
+# A commit message with [skip ci] starts no workflow (then run nfs-ganesha-build by hand).
+#
+# Setup: Settings > Actions of the repository or of the organization (shared by its repositories);
+# a repository secret wins over the organization one with the same name.
+#   REGISTRY_HOST       secret or variable  host of the private Gitea registry (no https://);
+#                                           image <host>/initzero/nfs-ganesha (.gitea/actions/registry-login),
+#                                           build cache in its buildcache tag
+#   REGISTRY_USERNAME   secret  Gitea user allowed to write the packages of the owner
+#   REGISTRY_TOKEN      secret  Gitea token of that user, scope package: Read and Write
+#   DOCKER_USERNAME     secret  Docker Hub user with write access to izdock/nfs-ganesha
+#   DOCKER_PASSWORD     secret  Docker Hub personal access token, Read & Write
+#   GH_PUSH_TOKEN       secret  GitHub fine-grained token, ugoviti/izdock-nfs-ganesha only, Contents: Read and write
+#                               (repository secret: the organization one of another repository does not fit)
+#   MATRIX_PASSWORD     secret  password of the Matrix bot
+#   MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER   variables  Matrix homeserver URL, room id, bot user id
+#   GITLEAKS_CONFIG     secret, optional  private gitleaks rules (TOML) extending the repository ones:
+#                                           [extend] path = ".gitleaks.toml"
+# Runner label: ubuntu-latest, with Docker (the smoke test runs a container with
+# --cap-add SYS_RESOURCE,DAC_READ_SEARCH). The Docker Hub description is updated by hand from README.md.
+
+name: nfs-ganesha-build
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # every Monday at 03:30 UTC
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dockerhub:
+        description: Also publish on Docker Hub (after the verify), then push the commit to GitHub
+        type: boolean
+        default: true
+
+concurrency:
+  group: nfs-ganesha-build
+  cancel-in-progress: false
+
+env:
+  DOCKERHUB_IMAGE: izdock/nfs-ganesha
+  PUBLIC_REPO_URL: https://github.com/ugoviti/izdock-nfs-ganesha.git
+  PUBLIC_BRANCH: main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: nfs-ganesha
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build, push and verify
+        id: build
+        uses: ./.gitea/actions/build-push
+        with:
+          latest: 'true'
+          build-number: ${{ gitea.run_number }}
+          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: login docker hub
+        id: hub
+        if: github.event_name != 'workflow_dispatch' || inputs.dockerhub == true || inputs.dockerhub == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: promote to docker hub
+        if: steps.hub.outcome == 'success'
+        uses: ./.gitea/actions/promote
+        with:
+          source: ${{ steps.build.outputs.image }}:${{ steps.build.outputs.source-tag }}
+          version: ${{ steps.build.outputs.version }}
+          latest: 'true'
+          build-number: ${{ gitea.run_number }}
+          dockerhub-image: ${{ env.DOCKERHUB_IMAGE }}
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: nfs-ganesha ${{ steps.build.outputs.version || '?' }} (${{ github.event_name }}) dockerhub:${{ steps.hub.outcome == 'success' && 'yes' || 'no' }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}
+
+  # the release passed (built, verified and on Docker Hub): publish the code
+  github:
+    needs: build
+    if: github.event_name != 'workflow_dispatch' || inputs.dockerhub == true || inputs.dockerhub == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: ./.gitea/actions/gitleaks
+        with:
+          config: ${{ secrets.GITLEAKS_CONFIG }}
+
+      - name: push to github
+        env:
+          GH_PUSH_TOKEN: ${{ secrets.GH_PUSH_TOKEN }}
+        run: |
+          set -eu
+          AUTH=$(printf 'x-access-token:%s' "$GH_PUSH_TOKEN" | base64 -w0)
+          # fast-forward only (no force): GitHub rejects a commit that does not contain its main
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH}" \
+            push "$PUBLIC_REPO_URL" "${GITHUB_SHA}:refs/heads/${PUBLIC_BRANCH}"
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: github push ${{ env.PUBLIC_BRANCH }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}

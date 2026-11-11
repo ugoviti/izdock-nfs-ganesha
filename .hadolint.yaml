@@ -1,0 +1,6 @@
+# hadolint settings (tools/lint.sh)
+failure-threshold: warning
+ignored:
+  # Debian package versions are not pinned: pins break on every security update.
+  # Reproducibility comes from the base image pinned by digest in versions.env.
+  - DL3008

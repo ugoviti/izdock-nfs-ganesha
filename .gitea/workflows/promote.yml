@@ -1,0 +1,82 @@
+# izdock/nfs-ganesha publish (Gitea Actions)
+# Manual only: Repository > Actions > nfs-ganesha-promote > Run workflow.
+# Normally not needed: nfs-ganesha-build publishes on Docker Hub by itself after the verify.
+# Use it to publish again an image that is already in the Gitea registry (eg. a build run
+# with dockerhub unchecked, or to move the tags back to an older build), without rebuilding
+# (same digest that was verified). Tag scheme: .gitea/actions/image-tags
+#   source 15.11-57 -> 15.11, 15, 15.11-57 [, latest]
+#
+# Required secrets:   REGISTRY_HOST (or variable), REGISTRY_USERNAME, REGISTRY_TOKEN, DOCKER_USERNAME,
+#                     DOCKER_PASSWORD, MATRIX_PASSWORD
+# Required variables: MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER
+
+name: nfs-ganesha-promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Tag to publish, as in the Gitea registry (eg. 15.11-57 or 15.11)
+        required: true
+      latest:
+        description: Also move the "latest" Docker tag
+        type: boolean
+        default: true
+
+concurrency:
+  group: nfs-ganesha-build
+  cancel-in-progress: false
+
+env:
+  DOCKERHUB_IMAGE: izdock/nfs-ganesha
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: parse source tag
+        id: src
+        env:
+          SOURCE: ${{ inputs.source }}
+        run: |
+          set -eu
+          if [[ "$SOURCE" =~ ^([0-9]+\.[0-9]+(\.[0-9]+)?)(-([0-9]+))?$ ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "build=${BASH_REMATCH[4]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::source must be X.Y[.Z] or X.Y[.Z]-<build> (got '$SOURCE')"
+            exit 1
+          fi
+
+      - name: registry login
+        id: login
+        uses: ./.gitea/actions/registry-login
+        with:
+          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+          dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: promote to docker hub
+        uses: ./.gitea/actions/promote
+        with:
+          source: ${{ steps.login.outputs.image }}:${{ inputs.source }}
+          version: ${{ steps.src.outputs.version }}
+          latest: ${{ inputs.latest }}
+          build-number: ${{ steps.src.outputs.build }}
+          dockerhub-image: ${{ env.DOCKERHUB_IMAGE }}
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: publish ${{ inputs.source }} latest:${{ inputs.latest }}
+          password: ${{ secrets.MATRIX_PASSWORD }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USER }}
