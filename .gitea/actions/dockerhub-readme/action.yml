@@ -1,0 +1,61 @@
+name: docker hub readme
+description: Update the Docker Hub repository description (full description from README.md, optional short one)
+
+# Docker Hub accepts a description update only from a personal access token with the
+# "Read, Write, Delete" scope (or the account password): a "Read & Write" token gets 401/403.
+# Without a token the step is skipped with a warning.
+
+inputs:
+  username:
+    description: Docker Hub user (secrets.DOCKER_USERNAME)
+    required: true
+  token:
+    description: Docker Hub personal access token, scope Read, Write, Delete (secrets.DOCKERHUB_README_TOKEN)
+    default: ''
+  repository:
+    description: Docker Hub repository (namespace/name)
+    required: true
+  readme:
+    description: Markdown file for the full description (max 25000 bytes)
+    default: README.md
+  short-description:
+    description: Optional short description (max 100 characters); empty = leave it as it is
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: update docker hub description
+      shell: bash
+      env:
+        HUB_USER: ${{ inputs.username }}
+        HUB_TOKEN: ${{ inputs.token }}
+        REPOSITORY: ${{ inputs.repository }}
+        README: ${{ inputs.readme }}
+        SHORT: ${{ inputs.short-description }}
+      run: |
+        set -euo pipefail
+        if [ -z "$HUB_TOKEN" ]; then
+          echo "::warning::no Docker Hub token for the description (DOCKERHUB_README_TOKEN): README not published"
+          exit 0
+        fi
+        [ -r "$README" ] || { echo "::error::$README not found"; exit 1; }
+        size=$(wc -c < "$README")
+        [ "$size" -le 25000 ] || { echo "::error::$README is $size bytes, Docker Hub accepts at most 25000"; exit 1; }
+        [ ${#SHORT} -le 100 ] || { echo "::error::short description is ${#SHORT} characters, Docker Hub accepts at most 100"; exit 1; }
+
+        JWT=$(jq -n --arg u "$HUB_USER" --arg p "$HUB_TOKEN" '{identifier: $u, secret: $p}' |
+          curl -fsS -X POST -H 'Content-Type: application/json' -d @- https://hub.docker.com/v2/auth/token |
+          jq -r '.access_token // empty') || true
+        [ -n "$JWT" ] || { echo "::error::Docker Hub login failed for $HUB_USER"; exit 1; }
+        echo "::add-mask::$JWT"
+
+        payload=$(jq -n --rawfile f "$README" --arg s "$SHORT" '{full_description: $f} + (if $s != "" then {description: $s} else {} end)')
+        code=$(curl -sS -o "$RUNNER_TEMP/hub-readme.json" -w '%{http_code}' -X PATCH \
+          -H "Authorization: Bearer $JWT" -H 'Content-Type: application/json' -d "$payload" \
+          "https://hub.docker.com/v2/repositories/${REPOSITORY}/")
+        case "$code" in
+          200) echo "Docker Hub description of $REPOSITORY updated from $README ($size bytes)" ;;
+          401|403) echo "::error::Docker Hub refused the description update (HTTP $code): the token needs the Read, Write, Delete scope"; exit 1 ;;
+          *) echo "::error::Docker Hub description update failed (HTTP $code): $(head -c 300 "$RUNNER_TEMP/hub-readme.json")"; exit 1 ;;
+        esac
