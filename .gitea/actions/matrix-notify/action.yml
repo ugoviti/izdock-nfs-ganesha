@@ -1,5 +1,5 @@
 name: matrix notify
-description: Send the build result to the Matrix room
+description: Send the build result to the Matrix room (never fails the job)
 
 inputs:
   status:
@@ -11,18 +11,18 @@ inputs:
   details:
     description: Optional text appended to the message (eg. a table), shown preformatted
     default: ''
-  password:
-    description: Matrix bot password
+  token:
+    description: Access token of the Matrix bot (secrets.MATRIX_TOKEN); the homeserver allows no password login
     required: true
   homeserver:
-    description: Matrix homeserver URL (vars.MATRIX_HOMESERVER)
+    description: Matrix homeserver URL or the URL of its domain (vars.MATRIX_HOMESERVER); .well-known/matrix/client is followed
     required: true
   room-id:
     description: Matrix room id (vars.MATRIX_ROOM_ID)
     required: true
   user:
-    description: Matrix bot user id (vars.MATRIX_USER)
-    required: true
+    description: Matrix user id of the bot (vars.MATRIX_USERNAME), checked against the owner of the token
+    default: ''
 
 runs:
   using: composite
@@ -33,12 +33,17 @@ runs:
         STATUS: ${{ inputs.status }}
         LABEL: ${{ inputs.label }}
         DETAILS: ${{ inputs.details }}
-        MATRIX_PASSWORD: ${{ inputs.password }}
+        MATRIX_TOKEN: ${{ inputs.token }}
         MATRIX_HOMESERVER: ${{ inputs.homeserver }}
         MATRIX_ROOM_ID: ${{ inputs.room-id }}
-        MATRIX_USER: ${{ inputs.user }}
+        MATRIX_USERNAME: ${{ inputs.user }}
       run: |
-        set -eu
+        set -u
+        # a notification is not part of the release: a failure here is a warning, never a red job
+        if [ -z "$MATRIX_TOKEN" ] || [ -z "$MATRIX_HOMESERVER" ] || [ -z "$MATRIX_ROOM_ID" ]; then
+          echo "::warning::matrix notify skipped: MATRIX_TOKEN, MATRIX_HOMESERVER or MATRIX_ROOM_ID is empty"
+          exit 0
+        fi
         RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_NUMBER}"
         BODY="${GITHUB_REPOSITORY} build:#${GITHUB_RUN_NUMBER} ${LABEL} status:${STATUS}"
         HTML="<a href=\"${RUN_URL}\"><code>${GITHUB_REPOSITORY}</code></a> build:[<code>#${GITHUB_RUN_NUMBER}</code>] [<code>${LABEL}</code>] status:[<strong>${STATUS}</strong>]"
@@ -47,16 +52,30 @@ runs:
           HTML+="<pre>$(printf '%s' "$DETAILS" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')</pre>"
         fi
 
-        TOKEN=$(jq -n --arg u "$MATRIX_USER" --arg p "$MATRIX_PASSWORD" \
-            '{type:"m.login.password", identifier:{type:"m.id.user", user:$u}, password:$p}' \
-          | curl -fsS -X POST -H 'Content-Type: application/json' -d @- \
-            "${MATRIX_HOMESERVER}/_matrix/client/v3/login" | jq -r .access_token)
+        # the configured URL may be the web client (eg. chat.example.com): its .well-known names the homeserver
+        HS=${MATRIX_HOMESERVER%/}
+        WK=$(curl -fsS -m 10 "${HS}/.well-known/matrix/client" 2>/dev/null | jq -r '."m.homeserver".base_url // empty' 2>/dev/null)
+        [ -n "$WK" ] && HS=${WK%/}
 
+        # the token must belong to the bot: a token of another user would post in its name
+        WHO=$(curl -fsS -m 10 -H "Authorization: Bearer ${MATRIX_TOKEN}" "${HS}/_matrix/client/v3/account/whoami" 2>/dev/null | jq -r '.user_id // empty' 2>/dev/null)
+        if [ -z "$WHO" ]; then
+          echo "::warning::matrix notify failed (homeserver ${HS}): MATRIX_TOKEN is not valid${MATRIX_USERNAME:+ for ${MATRIX_USERNAME}}"
+          exit 0
+        fi
+        # MATRIX_USERNAME may be the full id (@bot:example.com) or only the localpart (bot)
+        if [ -n "$MATRIX_USERNAME" ] && [ "$WHO" != "$MATRIX_USERNAME" ] && [ "${WHO#@}" != "$MATRIX_USERNAME" ] && [ "$(printf '%s' "${WHO#@}" | cut -d: -f1)" != "${MATRIX_USERNAME#@}" ]; then
+          echo "::warning::matrix notify skipped: MATRIX_TOKEN belongs to ${WHO}, not to MATRIX_USERNAME ${MATRIX_USERNAME}"
+          exit 0
+        fi
+
+        # no logout: it would revoke the long-lived token of the bot
         ROOM=$(jq -rn --arg r "$MATRIX_ROOM_ID" '$r|@uri')
-        jq -n --arg b "$BODY" --arg h "$HTML" \
+        if jq -n --arg b "$BODY" --arg h "$HTML" \
             '{msgtype:"m.notice", body:$b, format:"org.matrix.custom.html", formatted_body:$h}' \
-          | curl -fsS -X PUT -H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/json' -d @- \
-            "${MATRIX_HOMESERVER}/_matrix/client/v3/rooms/${ROOM}/send/m.room.message/gitea-${GITHUB_RUN_ID}-$(date +%s)" >/dev/null
-
-        # logout so a new Matrix device isn't left behind for every build
-        curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" "${MATRIX_HOMESERVER}/_matrix/client/v3/logout" >/dev/null || true
+          | curl -fsS -m 20 -X PUT -H "Authorization: Bearer ${MATRIX_TOKEN}" -H 'Content-Type: application/json' -d @- \
+            "${HS}/_matrix/client/v3/rooms/${ROOM}/send/m.room.message/gitea-${GITHUB_RUN_ID}-$(date +%s)" >/dev/null; then
+          echo "matrix notify sent to ${HS} as ${WHO}"
+        else
+          echo "::warning::matrix notify failed (homeserver ${HS}): check that ${WHO} is in the room ${MATRIX_ROOM_ID}"
+        fi

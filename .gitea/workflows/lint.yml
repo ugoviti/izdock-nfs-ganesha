@@ -1,7 +1,7 @@
 # Lint (Gitea Actions): shellcheck and hadolint, the pinned versions of tools/lint.sh.
 # On every push and pull request: a finding fails the job.
 #
-# Failure notify: MATRIX_PASSWORD (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER (variables)
+# Failure notify: MATRIX_TOKEN (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME (variables)
 
 name: lint
 
@@ -28,7 +28,7 @@ jobs:
         with:
           status: ${{ job.status }}
           label: lint ref:${{ gitea.ref_name }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}

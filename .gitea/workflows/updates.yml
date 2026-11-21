@@ -8,12 +8,12 @@
 #   3. nfs-ganesha-pr builds and verifies the image on the pull request; merging it releases
 #      (nfs-ganesha-build on main). Closing it skips those versions until the next run.
 #
-# Required secrets:   MATRIX_PASSWORD
+# Required secrets:   MATRIX_TOKEN
 # Optional secrets:   UPDATES_TOKEN  Gitea token (bot or user), scope repository: Read and Write, used to
 #                                    push the branch and open the PR; without it the automatic token of
 #                                    the job is used, and its pull requests may not start nfs-ganesha-pr
 #                     GH_PUSH_TOKEN  also used for the GitHub API lookups (higher rate limit)
-# Required variables: MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER
+# Required variables: MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME
 
 name: nfs-ganesha-updates
 
@@ -82,7 +82,7 @@ jobs:
           status: ${{ job.status }}
           label: "updates ${{ steps.pr.outputs.number && format('PR #{0}', steps.pr.outputs.number) || '' }}"
           details: ${{ steps.check.outputs.report }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}

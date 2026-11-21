@@ -11,10 +11,10 @@
 #
 # Then the Docker Hub description is updated from README.md (.gitea/actions/dockerhub-readme).
 #
-# Required secrets:   REGISTRY_HOST (or variable), REGISTRY_USERNAME, REGISTRY_TOKEN, DOCKER_USERNAME,
-#                     DOCKER_PASSWORD, MATRIX_PASSWORD
+# Required secrets:   REGISTRY_HOST (or variable), PACKAGES_TOKEN, DOCKER_USERNAME,
+#                     DOCKER_PASSWORD, MATRIX_TOKEN
 # Optional secret:    DOCKERHUB_README_TOKEN (Read, Write, Delete) for the description, else DOCKER_PASSWORD
-# Required variables: MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER
+# Required variables: PACKAGES_USERNAME, MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME
 
 name: nfs-ganesha-promote
 
@@ -49,8 +49,8 @@ jobs:
         uses: ./.gitea/actions/registry-login
         with:
           registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
-          registry-username: ${{ secrets.REGISTRY_USERNAME }}
-          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
           dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
           dockerhub-password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -105,7 +105,7 @@ jobs:
         with:
           status: ${{ job.status }}
           label: publish ${{ inputs.source }} (${{ steps.src.outputs.version }}${{ steps.src.outputs.build && format('-{0}', steps.src.outputs.build) || '' }}) latest:${{ inputs.latest }} readme:${{ steps.readme.outcome || 'skipped' }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}

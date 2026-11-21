@@ -18,8 +18,8 @@
 #   REGISTRY_HOST       secret or variable  host of the private Gitea registry (no https://);
 #                                           image <host>/initzero/nfs-ganesha (.gitea/actions/registry-login),
 #                                           build cache in its buildcache tag
-#   REGISTRY_USERNAME   secret  Gitea user allowed to write the packages of the owner
-#   REGISTRY_TOKEN      secret  Gitea token of that user, scope package: Read and Write
+#   PACKAGES_USERNAME   variable Gitea user allowed to write the packages of the owner
+#   PACKAGES_TOKEN      secret  Gitea token of that user, scope package: Read and Write
 #   DOCKER_USERNAME     secret  Docker Hub user with write access to izdock/nfs-ganesha
 #   DOCKER_PASSWORD     secret  Docker Hub personal access token, Read & Write
 #   DOCKERHUB_README_TOKEN  secret, optional  Docker Hub personal access token, Read, Write, Delete:
@@ -27,8 +27,8 @@
 #                           (.gitea/actions/dockerhub-readme); without it DOCKER_PASSWORD is tried
 #   GH_PUSH_TOKEN       secret  GitHub fine-grained token, ugoviti/izdock-nfs-ganesha only, Contents: Read and write
 #                               (repository secret: the organization one of another repository does not fit)
-#   MATRIX_PASSWORD     secret  password of the Matrix bot
-#   MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER   variables  Matrix homeserver URL, room id, bot user id
+#   MATRIX_TOKEN        secret  access token of the Matrix bot (the homeserver has no password login)
+#   MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME   variables  Matrix homeserver (or its domain: .well-known is followed), room id, bot user id
 #   GITLEAKS_CONFIG     secret, optional  private gitleaks rules (TOML) extending the repository ones:
 #                                           [extend] path = ".gitleaks.toml"
 # Runner label: ubuntu-latest, with Docker (the smoke test runs a container with
@@ -76,8 +76,8 @@ jobs:
           latest: 'true'
           build-number: ${{ gitea.run_number }}
           registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
-          registry-username: ${{ secrets.REGISTRY_USERNAME }}
-          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: login docker hub
         id: hub
@@ -114,10 +114,10 @@ jobs:
         with:
           status: ${{ job.status }}
           label: nfs-ganesha ${{ steps.build.outputs.version || '?' }} (${{ github.event_name }}) dockerhub:${{ steps.hub.outcome == 'success' && 'yes' || 'no' }} readme:${{ steps.readme.outcome || 'skipped' }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}
 
   # the release passed (built, verified and on Docker Hub): publish the code
   github:
@@ -151,7 +151,7 @@ jobs:
         with:
           status: ${{ job.status }}
           label: github push ${{ env.PUBLIC_BRANCH }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}

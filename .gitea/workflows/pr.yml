@@ -3,8 +3,8 @@
 # versions.env of the pull request and verify it (checks and smoke test), without publishing
 # anything (the image is only loaded in the runner; the registry build cache is read, never written).
 #
-# Required secrets: REGISTRY_HOST (or variable), REGISTRY_USERNAME, REGISTRY_TOKEN (build cache)
-# Failure notify:   MATRIX_PASSWORD (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USER (variables)
+# Required secrets: REGISTRY_HOST (or variable), PACKAGES_TOKEN (secret), PACKAGES_USERNAME (variable) (build cache)
+# Failure notify:   MATRIX_TOKEN (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME (variables)
 
 name: nfs-ganesha-pr
 
@@ -30,8 +30,8 @@ jobs:
           push: 'false'
           build-number: pr${{ github.event.pull_request.number }}
           registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
-          registry-username: ${{ secrets.REGISTRY_USERNAME }}
-          registry-token: ${{ secrets.REGISTRY_TOKEN }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: matrix notify
         if: failure()
@@ -39,7 +39,7 @@ jobs:
         with:
           status: ${{ job.status }}
           label: PR #${{ github.event.pull_request.number }} nfs-ganesha ${{ steps.build.outputs.version || '?' }}
-          password: ${{ secrets.MATRIX_PASSWORD }}
+          token: ${{ secrets.MATRIX_TOKEN }}
           homeserver: ${{ vars.MATRIX_HOMESERVER }}
           room-id: ${{ vars.MATRIX_ROOM_ID }}
-          user: ${{ vars.MATRIX_USER }}
+          user: ${{ vars.MATRIX_USERNAME }}
