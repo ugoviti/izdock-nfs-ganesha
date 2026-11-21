@@ -3,7 +3,7 @@
 # versions.env of the pull request and verify it (checks and smoke test), without publishing
 # anything (the image is only loaded in the runner; the registry build cache is read, never written).
 #
-# Required secrets: REGISTRY_HOST (or variable), PACKAGES_TOKEN (secret), PACKAGES_USERNAME (variable) (build cache)
+# Required secrets: PACKAGES_TOKEN (secret), PACKAGES_USERNAME (variable) (build cache)
 # Failure notify:   MATRIX_TOKEN (secret), MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME (variables)
 
 name: nfs-ganesha-pr
@@ -29,7 +29,7 @@ jobs:
         with:
           push: 'false'
           build-number: pr${{ github.event.pull_request.number }}
-          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
           registry-username: ${{ vars.PACKAGES_USERNAME }}
           registry-token: ${{ secrets.PACKAGES_TOKEN }}
 

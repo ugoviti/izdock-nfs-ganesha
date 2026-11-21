@@ -17,7 +17,7 @@ inputs:
   platforms:
     default: linux/amd64
   registry-host:
-    description: Private registry host (secrets.REGISTRY_HOST)
+    description: Gitea registry host or URL (vars.PACKAGES_HOST || github.server_url)
     required: true
   registry-repository:
     default: initzero/nfs-ganesha

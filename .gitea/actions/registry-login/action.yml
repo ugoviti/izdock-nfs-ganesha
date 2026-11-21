@@ -3,7 +3,7 @@ description: Setup buildx and log in to the private Gitea registry and, optional
 
 inputs:
   registry-host:
-    description: Private registry host, from secrets.REGISTRY_HOST or vars.REGISTRY_HOST (masked in job logs)
+    description: Gitea registry host or URL (vars.PACKAGES_HOST || github.server_url); scheme and path are dropped
     required: true
   registry-repository:
     description: Image path inside the private registry (owner/name)
@@ -30,16 +30,20 @@ runs:
       id: reg
       shell: bash
       env:
-        REGISTRY_HOST: ${{ inputs.registry-host }}
+        REGISTRY_INPUT: ${{ inputs.registry-host }}
         REGISTRY_REPOSITORY: ${{ inputs.registry-repository }}
       run: |
         set -eu
         # an empty host would make docker/login-action fall back to Docker Hub with the Gitea credentials
+        # github.server_url is a URL (https://git.example.com): keep only the host
+        REGISTRY_HOST=${REGISTRY_INPUT#*://}
+        REGISTRY_HOST=${REGISTRY_HOST%%/*}
         if [ -z "$REGISTRY_HOST" ]; then
-          echo "::error::REGISTRY_HOST is empty: define it as an Actions secret or variable (repository or organization), eg. git.example.com"
+          echo "::error::the registry host is empty (vars.PACKAGES_HOST or github.server_url), eg. git.example.com"
           exit 1
         fi
-        echo "::add-mask::${REGISTRY_HOST}"
+        echo "registry ${REGISTRY_HOST}"
+        echo "host=${REGISTRY_HOST}" >> "$GITHUB_OUTPUT"
         echo "image=${REGISTRY_HOST}/${REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
 
     - name: setup buildx
@@ -48,7 +52,7 @@ runs:
     - name: login private registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ inputs.registry-host }}
+        registry: ${{ steps.reg.outputs.host }}
         username: ${{ inputs.registry-username }}
         password: ${{ inputs.registry-token }}
 

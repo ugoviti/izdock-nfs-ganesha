@@ -11,7 +11,7 @@
 #
 # Then the Docker Hub description is updated from README.md (.gitea/actions/dockerhub-readme).
 #
-# Required secrets:   REGISTRY_HOST (or variable), PACKAGES_TOKEN, DOCKER_USERNAME,
+# Required secrets:   PACKAGES_TOKEN, DOCKER_USERNAME,
 #                     DOCKER_PASSWORD, MATRIX_TOKEN
 # Optional secret:    DOCKERHUB_README_TOKEN (Read, Write, Delete) for the description, else DOCKER_PASSWORD
 # Required variables: PACKAGES_USERNAME, MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME
@@ -48,7 +48,7 @@ jobs:
         id: login
         uses: ./.gitea/actions/registry-login
         with:
-          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
           registry-username: ${{ vars.PACKAGES_USERNAME }}
           registry-token: ${{ secrets.PACKAGES_TOKEN }}
           dockerhub-username: ${{ secrets.DOCKER_USERNAME }}

@@ -15,7 +15,9 @@
 #
 # Setup: Settings > Actions of the repository or of the organization (shared by its repositories);
 # a repository secret wins over the organization one with the same name.
-#   REGISTRY_HOST       secret or variable  host of the private Gitea registry (no https://);
+#   PACKAGES_HOST       variable (optional) host of the Gitea registry; default: the Gitea instance that
+#                                           runs the job (github.server_url, eg. git.quantico.srl), so the
+#                                           packages stay next to the repository. REGISTRY_HOST is not used.
 #                                           image <host>/initzero/nfs-ganesha (.gitea/actions/registry-login),
 #                                           build cache in its buildcache tag
 #   PACKAGES_USERNAME   variable Gitea user allowed to write the packages of the owner
@@ -75,7 +77,7 @@ jobs:
         with:
           latest: 'true'
           build-number: ${{ gitea.run_number }}
-          registry-host: ${{ secrets.REGISTRY_HOST || vars.REGISTRY_HOST }}
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
           registry-username: ${{ vars.PACKAGES_USERNAME }}
           registry-token: ${{ secrets.PACKAGES_TOKEN }}
 
